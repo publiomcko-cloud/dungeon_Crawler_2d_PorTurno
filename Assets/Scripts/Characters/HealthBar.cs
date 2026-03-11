@@ -3,21 +3,34 @@ using UnityEngine.UI;
 
 public class HealthBar : MonoBehaviour
 {
-    public Entity target;
-    public Image fillImage;
+    [SerializeField] private Entity entity;
+    [SerializeField] private Slider slider;
 
-    void Update()
+    private void Awake()
     {
-        if (target == null)
-        {
-            Destroy(gameObject);
+        if (entity == null)
+            entity = GetComponentInParent<Entity>();
+
+        if (slider == null)
+            slider = GetComponent<Slider>();
+    }
+
+    private void Start()
+    {
+        Refresh();
+    }
+
+    private void Update()
+    {
+        Refresh();
+    }
+
+    private void Refresh()
+    {
+        if (entity == null || slider == null)
             return;
-        }
 
-        float hpPercent = (float)target.currentHP / target.maxHP;
-
-        fillImage.fillAmount = hpPercent;
-
-        transform.position = target.transform.position + Vector3.up * 0.8f;
+        slider.maxValue = entity.maxHP;
+        slider.value = entity.CurrentHP;
     }
 }

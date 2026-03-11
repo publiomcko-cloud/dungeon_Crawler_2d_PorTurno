@@ -1,80 +1,42 @@
-using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
+using UnityEngine;
 
 public class TurnManager : MonoBehaviour
 {
     public static TurnManager Instance;
 
-    public enum TurnState
+    [SerializeField] private EnemyAI enemyAI;
+
+    public bool IsPlayerTurn { get; private set; } = true;
+    private bool enemyTurnRunning = false;
+
+    private void Awake()
     {
-        PlayerTurn,
-        EnemyTurn
-    }
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
 
-    public TurnState currentState;
-
-    private List<Entity> enemies = new List<Entity>();
-
-    void Awake()
-    {
         Instance = this;
     }
 
-    void Start()
+    public void StartEnemyTurn()
     {
-        currentState = TurnState.PlayerTurn;
+        if (enemyTurnRunning) return;
 
-        RegisterEnemies();
+        IsPlayerTurn = false;
+        StartCoroutine(EnemyTurnRoutine());
     }
 
-    void RegisterEnemies()
+    private IEnumerator EnemyTurnRoutine()
     {
-        enemies.Clear();
+        enemyTurnRunning = true;
 
-        EnemyAI[] foundEnemies = FindObjectsOfType<EnemyAI>();
+        if (enemyAI != null)
+            yield return StartCoroutine(enemyAI.ExecuteEnemyTurn());
 
-        foreach (EnemyAI enemy in foundEnemies)
-        {
-            Entity e = enemy.GetComponent<Entity>();
-
-            if (e != null)
-                enemies.Add(e);
-        }
-    }
-
-    public bool IsPlayerTurn()
-    {
-        return currentState == TurnState.PlayerTurn;
-    }
-
-    public void EndPlayerTurn()
-    {
-        currentState = TurnState.EnemyTurn;
-
-        StartCoroutine(EnemyTurn());
-    }
-
-    IEnumerator EnemyTurn()
-    {
-        // Remove inimigos destruídos antes de iniciar turno
-        enemies.RemoveAll(enemy => enemy == null);
-
-        foreach (Entity enemy in enemies)
-        {
-            if (enemy == null)
-                continue;
-
-            EnemyAI ai = enemy.GetComponent<EnemyAI>();
-
-            if (ai != null)
-            {
-                ai.TakeTurn();
-            }
-
-            yield return new WaitForSeconds(0.2f);
-        }
-
-        currentState = TurnState.PlayerTurn;
+        enemyTurnRunning = false;
+        IsPlayerTurn = true;
     }
 }

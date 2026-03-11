@@ -1,47 +1,82 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemySpawner : MonoBehaviour
 {
+    [Header("Prefabs")]
     public GameObject enemyPrefab;
-    public int enemyCount = 5;
 
-    public int mapWidth = 10;
-    public int mapHeight = 10;
+    [Header("Spawn Area")]
+    public int minX = -8;
+    public int maxX = 8;
+    public int minY = -8;
+    public int maxY = 8;
 
-    void Start()
+    [Header("Enemy Groups")]
+    public int numberOfEnemyGroups = 4;
+    public int minEnemiesPerGroup = 1;
+    public int maxEnemiesPerGroup = 4;
+
+    [Header("Block Player Start Cell")]
+    public bool avoidPlayerCell = true;
+
+    private void Start()
     {
-        SpawnEnemies();
+        SpawnEnemyGroups();
     }
 
-    void SpawnEnemies()
+    private void SpawnEnemyGroups()
     {
-        for (int i = 0; i < enemyCount; i++)
+        Vector2Int playerCell = Vector2Int.zero;
+        List<Entity> players = GridManager.Instance.GetEntitiesByTeam(Team.Player);
+
+        if (players.Count > 0)
+            playerCell = players[0].GridPosition;
+
+        for (int g = 0; g < numberOfEnemyGroups; g++)
         {
-            Vector2Int pos = GetRandomFreeCell();
+            Vector2Int spawnCell = GetFreeEnemyCell(playerCell);
+            int count = Random.Range(minEnemiesPerGroup, maxEnemiesPerGroup + 1);
 
-            Vector3 worldPos = new Vector3(
-                pos.x + 0.5f,
-                pos.y + 0.5f,
-                0
-            );
-
-            Instantiate(enemyPrefab, worldPos, Quaternion.identity);
+            for (int i = 0; i < count; i++)
+            {
+                Vector3 pos = GridManager.Instance.GetCellCenterWorld(spawnCell);
+                Instantiate(enemyPrefab, pos, Quaternion.identity);
+            }
         }
     }
 
-    Vector2Int GetRandomFreeCell()
+    private Vector2Int GetFreeEnemyCell(Vector2Int playerCell)
     {
-        for (int i = 0; i < 100; i++)
+        for (int tries = 0; tries < 200; tries++)
         {
-            Vector2Int pos = new Vector2Int(
-                Random.Range(-mapWidth, mapWidth),
-                Random.Range(-mapHeight, mapHeight)
+            Vector2Int cell = new Vector2Int(
+                Random.Range(minX, maxX + 1),
+                Random.Range(minY, maxY + 1)
             );
 
-            if (!GridManager.Instance.IsCellOccupied(pos))
-                return pos;
+            if (avoidPlayerCell && cell == playerCell)
+                continue;
+
+            List<Entity> entities = GridManager.Instance.GetEntitiesAtCell(cell);
+
+            bool hasPlayer = false;
+            foreach (Entity e in entities)
+            {
+                if (e.team == Team.Player)
+                {
+                    hasPlayer = true;
+                    break;
+                }
+            }
+
+            if (hasPlayer)
+                continue;
+
+            if (entities.Count < GridManager.Instance.maxEntitiesPerCell)
+                return cell;
         }
 
-        return Vector2Int.zero;
+        return new Vector2Int(maxX, maxY);
     }
 }

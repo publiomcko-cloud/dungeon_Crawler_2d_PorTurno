@@ -2,12 +2,12 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class PlayerGridMovement : MonoBehaviour
+public class PlayerPartyController : MonoBehaviour
 {
     private void Update()
     {
-        if (TurnManager.Instance == null) return;
-        if (!TurnManager.Instance.IsPlayerTurn) return;
+        if (!TurnManager.Instance.IsPlayerTurn)
+            return;
 
         Vector2Int direction = Vector2Int.zero;
 
@@ -28,8 +28,6 @@ public class PlayerGridMovement : MonoBehaviour
 
     private void TryMoveParty(Vector2Int direction)
     {
-        if (GridManager.Instance == null) return;
-
         List<Entity> party = GridManager.Instance.GetEntitiesByTeam(Team.Player);
 
         if (party.Count == 0)
@@ -38,11 +36,8 @@ public class PlayerGridMovement : MonoBehaviour
         Vector2Int sourceCell = party[0].GridPosition;
 
         party = party
-            .Where(e => e != null && !e.IsDead && e.GridPosition == sourceCell)
+            .Where(e => e.GridPosition == sourceCell)
             .ToList();
-
-        if (party.Count == 0)
-            return;
 
         Vector2Int targetCell = sourceCell + direction;
 
