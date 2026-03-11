@@ -15,7 +15,9 @@ GameObject:
   - component: {fileID: 6348543318622795528}
   - component: {fileID: 4414491388028772566}
   - component: {fileID: 5447965957265274592}
-  - component: {fileID: 5275624833915416181}
+  - component: {fileID: 6400158922240568134}
+  - component: {fileID: 6902811252456153405}
+  - component: {fileID: 4165491380731225060}
   m_Layer: 7
   m_Name: Player
   m_TagString: Player
@@ -198,6 +200,11 @@ MonoBehaviour:
   team: 0
   maxHP: 25
   attackDamage: 5
+  moveSpeed: 6
+  attackLungeDistance: 0.22
+  attackLungeDuration: 0.08
+  isAnimatingAttack: 0
+  damageNumberAnchor: {fileID: 0}
 --- !u!95 &5447965957265274592
 Animator:
   serializedVersion: 7
@@ -220,7 +227,19 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &5275624833915416181
+--- !u!114 &6400158922240568134
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2396094840041491219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ebd8b55fe4a7d1445b2efe682c3143e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DamageNumberReceiver
+--- !u!114 &6902811252456153405
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -232,8 +251,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: abb84a9649114004ab3fb992e0de28e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageFlash
-  flashTime: 0.12
-  flashColor: {r: 1, g: 0, b: 0, a: 1}
+  entity: {fileID: 4414491388028772566}
+  spriteRenderers:
+  - {fileID: 1477150635666455650}
+  flashColor: {r: 1, g: 0.35, b: 0.35, a: 1}
+  flashDuration: 0.2
+  flashCount: 2
+--- !u!114 &4165491380731225060
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2396094840041491219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c71a1244f1606b468d12539171970d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackAnimation
+  lungeDistance: 0.2
+  lungeSpeed: 8
 --- !u!1 &3652057163632071213
 GameObject:
   m_ObjectHideFlags: 0

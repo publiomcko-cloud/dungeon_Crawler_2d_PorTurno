@@ -8,7 +8,7 @@ public class GridManager : MonoBehaviour
 
     [Header("Grid")]
     public int maxEntitiesPerCell = 4;
-    public float slotOffset = 0.22f;
+    public float slotOffset = 0.18f;
 
     [Header("Walls")]
     [SerializeField] private LayerMask wallLayer;
@@ -54,7 +54,7 @@ public class GridManager : MonoBehaviour
             grid[cell].Add(entity);
 
         entity.SetGridPosition(cell);
-        RefreshCellVisuals(cell);
+        RefreshCellVisuals(cell, true);
     }
 
     public void RemoveEntity(Entity entity)
@@ -71,7 +71,7 @@ public class GridManager : MonoBehaviour
         if (grid[cell].Count == 0)
             grid.Remove(cell);
         else
-            RefreshCellVisuals(cell);
+            RefreshCellVisuals(cell, false);
     }
 
     public List<Entity> GetEntitiesAtCell(Vector2Int cell)
@@ -139,17 +139,6 @@ public class GridManager : MonoBehaviour
         return hit != null;
     }
 
-    public bool IsEnemyInCell(Vector2Int cell, Team team)
-    {
-        return GetEntitiesAtCell(cell).Any(e => e.team != team);
-    }
-
-    public bool IsFriendlyOnlyCell(Vector2Int cell, Team team)
-    {
-        List<Entity> entities = GetEntitiesAtCell(cell);
-        return entities.Count > 0 && entities.All(e => e.team == team);
-    }
-
     public bool TryMoveGroupOrAttack(List<Entity> movers, Vector2Int targetCell)
     {
         movers = movers.Where(e => e != null && !e.IsDead).ToList();
@@ -202,6 +191,14 @@ public class GridManager : MonoBehaviour
 
         if (attackers.Count == 0 || defenders.Count == 0)
             return;
+
+        Vector3 attackDirection = (GetCellCenterWorld(defenderCell) - GetCellCenterWorld(attackerCell)).normalized;
+
+        foreach (Entity attacker in attackers)
+        {
+            if (attacker != null && !attacker.IsDead)
+                attacker.PlayAttackLunge(attackDirection);
+        }
 
         int totalDamage = attackers.Sum(a => a.attackDamage);
         DistributeDamage(defenders, totalDamage);
@@ -256,18 +253,18 @@ public class GridManager : MonoBehaviour
         CleanupCell(targetCell);
 
         if (grid.ContainsKey(sourceCell))
-            RefreshCellVisuals(sourceCell);
+            RefreshCellVisuals(sourceCell, false);
 
         if (grid.ContainsKey(targetCell))
-            RefreshCellVisuals(targetCell);
+            RefreshCellVisuals(targetCell, false);
     }
 
     public Vector3 GetCellCenterWorld(Vector2Int cell)
     {
-        return new Vector3(cell.x, cell.y, 0f);
+        return new Vector3(cell.x + 0.5f, cell.y + 0.5f, 0f);
     }
 
-    private void RefreshCellVisuals(Vector2Int cell)
+    private void RefreshCellVisuals(Vector2Int cell, bool snapImmediately)
     {
         if (!grid.ContainsKey(cell))
             return;
@@ -281,7 +278,8 @@ public class GridManager : MonoBehaviour
 
         for (int i = 0; i < entities.Count; i++)
         {
-            entities[i].transform.position = GetSlotWorldPosition(cell, i);
+            Vector3 targetPos = GetSlotWorldPosition(cell, i);
+            entities[i].SetVisualTarget(targetPos, snapImmediately);
         }
     }
 
