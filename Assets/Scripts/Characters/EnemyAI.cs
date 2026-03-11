@@ -5,7 +5,12 @@ using UnityEngine;
 
 public class EnemyAI : MonoBehaviour
 {
+    [Header("Turn Timing")]
     public float delayBetweenEnemyGroups = 0.15f;
+
+    [Header("Vision")]
+    public int maxVisionRange = 6;
+    public bool requireLineOfSight = true;
 
     public IEnumerator ExecuteEnemyTurn()
     {
@@ -24,18 +29,25 @@ public class EnemyAI : MonoBehaviour
             if (playerCells.Count == 0)
                 yield break;
 
-            Vector2Int nearestPlayerCell = GetNearestCell(enemyCell, playerCells);
-            int distance = Manhattan(enemyCell, nearestPlayerCell);
+            Vector2Int? targetPlayerCell = GetVisibleNearestPlayerCell(enemyCell, playerCells);
+
+            if (!targetPlayerCell.HasValue)
+            {
+                yield return new WaitForSeconds(delayBetweenEnemyGroups);
+                continue;
+            }
+
+            Vector2Int playerCell = targetPlayerCell.Value;
+            int distance = Manhattan(enemyCell, playerCell);
 
             if (distance == 1)
             {
-                GridManager.Instance.ResolveCellAttack(enemyCell, nearestPlayerCell, Team.Enemy);
+                GridManager.Instance.ResolveCellAttack(enemyCell, playerCell, Team.Enemy);
             }
             else
             {
-                Vector2Int step = GetStepTowards(enemyCell, nearestPlayerCell);
+                Vector2Int step = GetStepTowards(enemyCell, playerCell);
                 Vector2Int targetCell = enemyCell + step;
-
                 GridManager.Instance.TryMoveGroupOrAttack(enemiesInCell, targetCell);
             }
 
@@ -43,22 +55,29 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
-    private Vector2Int GetNearestCell(Vector2Int origin, List<Vector2Int> cells)
+    private Vector2Int? GetVisibleNearestPlayerCell(Vector2Int enemyCell, List<Vector2Int> playerCells)
     {
-        Vector2Int best = cells[0];
-        int bestDistance = Manhattan(origin, best);
+        Vector2Int? bestCell = null;
+        int bestDistance = int.MaxValue;
 
-        for (int i = 1; i < cells.Count; i++)
+        foreach (Vector2Int playerCell in playerCells)
         {
-            int dist = Manhattan(origin, cells[i]);
-            if (dist < bestDistance)
+            int distance = Manhattan(enemyCell, playerCell);
+
+            if (distance > maxVisionRange)
+                continue;
+
+            if (requireLineOfSight && !GridManager.Instance.HasLineOfSight(enemyCell, playerCell))
+                continue;
+
+            if (distance < bestDistance)
             {
-                bestDistance = dist;
-                best = cells[i];
+                bestDistance = distance;
+                bestCell = playerCell;
             }
         }
 
-        return best;
+        return bestCell;
     }
 
     private int Manhattan(Vector2Int a, Vector2Int b)

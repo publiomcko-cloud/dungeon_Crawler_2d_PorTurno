@@ -139,6 +139,15 @@ public class GridManager : MonoBehaviour
         return hit != null;
     }
 
+    public bool HasLineOfSight(Vector2Int fromCell, Vector2Int toCell)
+    {
+        Vector2 from = GetCellCenterWorld(fromCell);
+        Vector2 to = GetCellCenterWorld(toCell);
+
+        RaycastHit2D hit = Physics2D.Linecast(from, to, wallLayer);
+        return hit.collider == null;
+    }
+
     public bool TryMoveGroupOrAttack(List<Entity> movers, Vector2Int targetCell)
     {
         movers = movers.Where(e => e != null && !e.IsDead).ToList();

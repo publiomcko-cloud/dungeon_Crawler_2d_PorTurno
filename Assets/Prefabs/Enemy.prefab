@@ -276,6 +276,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAI
   delayBetweenEnemyGroups: 0.15
+  maxVisionRange: 3
+  requireLineOfSight: 1
 --- !u!114 &1947735257507792333
 MonoBehaviour:
   m_ObjectHideFlags: 0
