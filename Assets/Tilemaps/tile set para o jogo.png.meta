@@ -1,0 +1,897 @@
+fileFormatVersion: 2
+guid: d3cc9228afa6b41459c248c25cc276a9
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 3615786369007333118
+    second: tile set para o jogo_0
+  - first:
+      213: -1740167176556142088
+    second: tile set para o jogo_1
+  - first:
+      213: -40358280766918485
+    second: tile set para o jogo_2
+  - first:
+      213: -6218485929985176279
+    second: tile set para o jogo_3
+  - first:
+      213: 5597627384759344014
+    second: tile set para o jogo_4
+  - first:
+      213: -4601227725147760820
+    second: tile set para o jogo_5
+  - first:
+      213: -4065115635736877917
+    second: tile set para o jogo_6
+  - first:
+      213: 430150918899040280
+    second: tile set para o jogo_7
+  - first:
+      213: -6265500319864219193
+    second: tile set para o jogo_8
+  - first:
+      213: 2343125094035243111
+    second: tile set para o jogo_9
+  - first:
+      213: -1001778120267551584
+    second: tile set para o jogo_10
+  - first:
+      213: -9078320195354101639
+    second: tile set para o jogo_11
+  - first:
+      213: 1891914878897308491
+    second: tile set para o jogo_12
+  - first:
+      213: -2118831170020448672
+    second: tile set para o jogo_13
+  - first:
+      213: 1637480796934477511
+    second: tile set para o jogo_14
+  - first:
+      213: 6446878029251616227
+    second: tile set para o jogo_15
+  - first:
+      213: -518794093068546293
+    second: tile set para o jogo_16
+  - first:
+      213: -6521526171540837158
+    second: tile set para o jogo_17
+  - first:
+      213: -8743212996239923394
+    second: tile set para o jogo_18
+  - first:
+      213: -304815237227827105
+    second: tile set para o jogo_19
+  - first:
+      213: -8203278955604400922
+    second: tile set para o jogo_20
+  - first:
+      213: -8639500127582016319
+    second: tile set para o jogo_21
+  - first:
+      213: -2504920168750610444
+    second: tile set para o jogo_22
+  - first:
+      213: 7884122517225545672
+    second: tile set para o jogo_23
+  - first:
+      213: 6609172018103344524
+    second: tile set para o jogo_24
+  - first:
+      213: 874122862643746358
+    second: tile set para o jogo_25
+  - first:
+      213: 186862108601582645
+    second: tile set para o jogo_26
+  - first:
+      213: 7266983526041460566
+    second: tile set para o jogo_27
+  - first:
+      213: -5603928339301891188
+    second: tile set para o jogo_28
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 16
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: tile set para o jogo_0
+      rect:
+        serializedVersion: 2
+        x: 31
+        y: 63
+        width: 98
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: efea16c9b8add2230800000000000000
+      internalID: 3615786369007333118
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_1
+      rect:
+        serializedVersion: 2
+        x: 143
+        y: 50
+        width: 18
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8f1a3973c2fa9d7e0800000000000000
+      internalID: -1740167176556142088
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_2
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 63
+        width: 18
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ba074238b5e907ff0800000000000000
+      internalID: -40358280766918485
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_3
+      rect:
+        serializedVersion: 2
+        x: 212
+        y: 63
+        width: 18
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 92d087e5eff73b9a0800000000000000
+      internalID: -6218485929985176279
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_4
+      rect:
+        serializedVersion: 2
+        x: 26
+        y: 38
+        width: 18
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e8b549de274cead40800000000000000
+      internalID: 5597627384759344014
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_5
+      rect:
+        serializedVersion: 2
+        x: 26
+        y: 4
+        width: 18
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c4793e723c72520c0800000000000000
+      internalID: -4601227725147760820
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_6
+      rect:
+        serializedVersion: 2
+        x: 43
+        y: 37
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3a464010edec597c0800000000000000
+      internalID: -4065115635736877917
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_7
+      rect:
+        serializedVersion: 2
+        x: 43
+        y: 4
+        width: 18
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 81009c05bf338f500800000000000000
+      internalID: 430150918899040280
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_8
+      rect:
+        serializedVersion: 2
+        x: 61
+        y: 37
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7c99566b7a87c09a0800000000000000
+      internalID: -6265500319864219193
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_9
+      rect:
+        serializedVersion: 2
+        x: 61
+        y: 4
+        width: 18
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 760464ecbd3748020800000000000000
+      internalID: 2343125094035243111
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_10
+      rect:
+        serializedVersion: 2
+        x: 79
+        y: 37
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0aca1b57b18f812f0800000000000000
+      internalID: -1001778120267551584
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_11
+      rect:
+        serializedVersion: 2
+        x: 79
+        y: 4
+        width: 18
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 978f9ae91e3530280800000000000000
+      internalID: -9078320195354101639
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_12
+      rect:
+        serializedVersion: 2
+        x: 97
+        y: 37
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b4343fdfe8e614a10800000000000000
+      internalID: 1891914878897308491
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_13
+      rect:
+        serializedVersion: 2
+        x: 97
+        y: 20
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 066e7e3e6466892e0800000000000000
+      internalID: -2118831170020448672
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_14
+      rect:
+        serializedVersion: 2
+        x: 114
+        y: 26
+        width: 18
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7c69dcbeb1089b610800000000000000
+      internalID: 1637480796934477511
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_15
+      rect:
+        serializedVersion: 2
+        x: 133
+        y: 31
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3ed10db1969e77950800000000000000
+      internalID: 6446878029251616227
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_16
+      rect:
+        serializedVersion: 2
+        x: 150
+        y: 31
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b0f0413658fdcc8f0800000000000000
+      internalID: -518794093068546293
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_17
+      rect:
+        serializedVersion: 2
+        x: 167
+        y: 31
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: adc25efdf72ee75a0800000000000000
+      internalID: -6521526171540837158
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_18
+      rect:
+        serializedVersion: 2
+        x: 184
+        y: 31
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e376a8b7a1ed9a680800000000000000
+      internalID: -8743212996239923394
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_19
+      rect:
+        serializedVersion: 2
+        x: 201
+        y: 31
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f50b8ee182415cbf0800000000000000
+      internalID: -304815237227827105
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_20
+      rect:
+        serializedVersion: 2
+        x: 218
+        y: 31
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6e423c1b049182e80800000000000000
+      internalID: -8203278955604400922
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_21
+      rect:
+        serializedVersion: 2
+        x: 235
+        y: 31
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1cc288278645a1880800000000000000
+      internalID: -8639500127582016319
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_22
+      rect:
+        serializedVersion: 2
+        x: 133
+        y: 14
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4f788eec06cbc3dd0800000000000000
+      internalID: -2504920168750610444
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_23
+      rect:
+        serializedVersion: 2
+        x: 150
+        y: 14
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8cf13e458a70a6d60800000000000000
+      internalID: 7884122517225545672
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_24
+      rect:
+        serializedVersion: 2
+        x: 167
+        y: 14
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c8d508efeee78bb50800000000000000
+      internalID: 6609172018103344524
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_25
+      rect:
+        serializedVersion: 2
+        x: 184
+        y: 14
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6369dedbc12812c00800000000000000
+      internalID: 874122862643746358
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_26
+      rect:
+        serializedVersion: 2
+        x: 201
+        y: 14
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5348d25091ed79200800000000000000
+      internalID: 186862108601582645
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_27
+      rect:
+        serializedVersion: 2
+        x: 218
+        y: 14
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 65f115ac30389d460800000000000000
+      internalID: 7266983526041460566
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: tile set para o jogo_28
+      rect:
+        serializedVersion: 2
+        x: 235
+        y: 14
+        width: 18
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c838a25cdd8da32b0800000000000000
+      internalID: -5603928339301891188
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      tile set para o jogo_0: 3615786369007333118
+      tile set para o jogo_1: -1740167176556142088
+      tile set para o jogo_10: -1001778120267551584
+      tile set para o jogo_11: -9078320195354101639
+      tile set para o jogo_12: 1891914878897308491
+      tile set para o jogo_13: -2118831170020448672
+      tile set para o jogo_14: 1637480796934477511
+      tile set para o jogo_15: 6446878029251616227
+      tile set para o jogo_16: -518794093068546293
+      tile set para o jogo_17: -6521526171540837158
+      tile set para o jogo_18: -8743212996239923394
+      tile set para o jogo_19: -304815237227827105
+      tile set para o jogo_2: -40358280766918485
+      tile set para o jogo_20: -8203278955604400922
+      tile set para o jogo_21: -8639500127582016319
+      tile set para o jogo_22: -2504920168750610444
+      tile set para o jogo_23: 7884122517225545672
+      tile set para o jogo_24: 6609172018103344524
+      tile set para o jogo_25: 874122862643746358
+      tile set para o jogo_26: 186862108601582645
+      tile set para o jogo_27: 7266983526041460566
+      tile set para o jogo_28: -5603928339301891188
+      tile set para o jogo_3: -6218485929985176279
+      tile set para o jogo_4: 5597627384759344014
+      tile set para o jogo_5: -4601227725147760820
+      tile set para o jogo_6: -4065115635736877917
+      tile set para o jogo_7: 430150918899040280
+      tile set para o jogo_8: -6265500319864219193
+      tile set para o jogo_9: 2343125094035243111
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
