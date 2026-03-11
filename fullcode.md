@@ -2,80 +2,225 @@
 
 This document contains all the C# scripts for the Unity project, organized by file. This is a 2D dungeon crawler game with turn-based movement, where the player moves on a grid, and enemies take turns after the player.
 
-## Entity.cs
+
+## GridManager.cs
 
 ```csharp
+
+using System.Collections.Generic;
 using UnityEngine;
 
-public class Entity : MonoBehaviour
+public class GridManager : MonoBehaviour
 {
-    public Vector2Int gridPosition;
+    public static GridManager Instance;
 
-    public int maxHP = 10;
-    public int currentHP;
+    // agora cada célula contém uma LISTA de entidades
+    private Dictionary<Vector2Int, List<Entity>> grid =
+        new Dictionary<Vector2Int, List<Entity>>();
 
-    public int attack = 2;
-    public int defense = 1;
-
-    void Start()
+    void Awake()
     {
-        currentHP = maxHP;
-
-        gridPosition = WorldToGrid(transform.position);
-
-        GridManager.Instance.RegisterEntity(gridPosition, this);
-
-        UpdateWorldPosition();
+        Instance = this;
     }
 
-    Vector2Int WorldToGrid(Vector3 pos)
+    public bool IsCellOccupied(Vector2Int pos)
     {
-        return new Vector2Int(
-            Mathf.RoundToInt(pos.x),
-            Mathf.RoundToInt(pos.y)
-        );
+        if (!grid.ContainsKey(pos))
+            return false;
+
+        return grid[pos].Count > 0;
     }
 
-    public void MoveTo(Vector2Int newPos)
+    // mantém compatibilidade com o sistema antigo
+    public Entity GetEntityAt(Vector2Int pos)
     {
-        GridManager.Instance.MoveEntity(gridPosition, newPos, this);
+        if (!grid.ContainsKey(pos))
+            return null;
 
-        gridPosition = newPos;
+        if (grid[pos].Count == 0)
+            return null;
 
-        UpdateWorldPosition();
+        return grid[pos][0];
     }
 
-    void UpdateWorldPosition()
+    // NOVO: retorna todas entidades da célula
+    public List<Entity> GetEntitiesAt(Vector2Int pos)
     {
-        transform.position = new Vector3(
-            gridPosition.x + 0.5f,
-            gridPosition.y + 0.5f,
-            0
-        );
+        if (!grid.ContainsKey(pos))
+            return new List<Entity>();
+
+        return grid[pos];
     }
 
-    public void TakeDamage(int damage)
+    public void RegisterEntity(Vector2Int pos, Entity entity)
     {
-        int finalDamage = Mathf.Max(damage - defense, 1);
+        if (!grid.ContainsKey(pos))
+        {
+            grid[pos] = new List<Entity>();
+        }
 
-        currentHP -= finalDamage;
-
-        if (currentHP <= 0)
-            Die();
+        grid[pos].Add(entity);
     }
 
-    void Die()
+    public void MoveEntity(Vector2Int oldPos, Vector2Int newPos, Entity entity)
     {
-        GridManager.Instance.RemoveEntity(gridPosition);
+        if (grid.ContainsKey(oldPos))
+        {
+            grid[oldPos].Remove(entity);
 
-        Destroy(gameObject);
+            if (grid[oldPos].Count == 0)
+                grid.Remove(oldPos);
+        }
+
+        if (!grid.ContainsKey(newPos))
+        {
+            grid[newPos] = new List<Entity>();
+        }
+
+        grid[newPos].Add(entity);
+    }
+
+    public void RemoveEntity(Vector2Int pos)
+    {
+        if (!grid.ContainsKey(pos))
+            return;
+
+        // remove todas entidades destruídas da lista
+        grid[pos].RemoveAll(e => e == null);
+
+        if (grid[pos].Count == 0)
+            grid.Remove(pos);
     }
 }
 ```
 
+
+## GridDebug.cs
+
+```csharp
+
+using UnityEngine;
+
+public class GridDebug : MonoBehaviour
+{
+    public int gridWidth = 20;
+    public int gridHeight = 20;
+
+    public float cellSize = 1f;
+
+    void OnDrawGizmos()
+    {
+        Gizmos.color = Color.yellow;
+
+        for (int x = -gridWidth; x < gridWidth; x++)
+        {
+            for (int y = -gridHeight; y < gridHeight; y++)
+            {
+                Vector3 pos = new Vector3(
+                    x + 0.5f,
+                    y + 0.5f,
+                    0
+                );
+
+                Gizmos.DrawSphere(pos, 0.05f);
+            }
+        }
+    }
+}
+```
+
+
+## TurnManager.cs
+
+```csharp
+
+using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+
+public class TurnManager : MonoBehaviour
+{
+    public static TurnManager Instance;
+
+    public enum TurnState
+    {
+        PlayerTurn,
+        EnemyTurn
+    }
+
+    public TurnState currentState;
+
+    private List<Entity> enemies = new List<Entity>();
+
+    void Awake()
+    {
+        Instance = this;
+    }
+
+    void Start()
+    {
+        currentState = TurnState.PlayerTurn;
+
+        RegisterEnemies();
+    }
+
+    void RegisterEnemies()
+    {
+        enemies.Clear();
+
+        EnemyAI[] foundEnemies = FindObjectsOfType<EnemyAI>();
+
+        foreach (EnemyAI enemy in foundEnemies)
+        {
+            Entity e = enemy.GetComponent<Entity>();
+
+            if (e != null)
+                enemies.Add(e);
+        }
+    }
+
+    public bool IsPlayerTurn()
+    {
+        return currentState == TurnState.PlayerTurn;
+    }
+
+    public void EndPlayerTurn()
+    {
+        currentState = TurnState.EnemyTurn;
+
+        StartCoroutine(EnemyTurn());
+    }
+
+    IEnumerator EnemyTurn()
+    {
+        // Remove inimigos destruídos antes de iniciar turno
+        enemies.RemoveAll(enemy => enemy == null);
+
+        foreach (Entity enemy in enemies)
+        {
+            if (enemy == null)
+                continue;
+
+            EnemyAI ai = enemy.GetComponent<EnemyAI>();
+
+            if (ai != null)
+            {
+                ai.TakeTurn();
+            }
+
+            yield return new WaitForSeconds(0.2f);
+        }
+
+        currentState = TurnState.PlayerTurn;
+    }
+}
+```
+
+
 ## PlayerGridMovement.cs
 
 ```csharp
+
 using UnityEngine;
 using System.Collections;
 
@@ -106,7 +251,6 @@ public class PlayerGridMovement : MonoBehaviour
     void Start()
     {
         entity = GetComponent<Entity>();
-
         targetWorldPosition = transform.position;
     }
 
@@ -150,8 +294,24 @@ public class PlayerGridMovement : MonoBehaviour
     {
         Vector2Int targetGrid = entity.gridPosition + direction;
 
-        if (GridManager.Instance.IsCellOccupied(targetGrid))
+        Entity targetEntity = GridManager.Instance.GetEntityAt(targetGrid);
+
+        // EXISTE ALGO NA CÉLULA
+        if (targetEntity != null)
+        {
+            // SE FOR INIMIGO → ATACA
+            EnemyAI enemy = targetEntity.GetComponent<EnemyAI>();
+
+            if (enemy != null)
+            {
+                entity.Attack(targetEntity);
+                TurnManager.Instance.EndPlayerTurn();
+                return;
+            }
+
+            // Se não for inimigo, não move
             return;
+        }
 
         lastDirection = direction;
 
@@ -243,9 +403,176 @@ public class PlayerGridMovement : MonoBehaviour
 }
 ```
 
+
+## HealthBar.cs
+
+```csharp
+
+using UnityEngine;
+using UnityEngine.UI;
+
+public class HealthBar : MonoBehaviour
+{
+    public Entity target;
+    public Image fillImage;
+
+    void Update()
+    {
+        if (target == null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        float hpPercent = (float)target.currentHP / target.maxHP;
+
+        fillImage.fillAmount = hpPercent;
+
+        transform.position = target.transform.position + Vector3.up * 0.8f;
+    }
+}
+```
+
+
+## Entity.cs
+
+```csharp
+
+using UnityEngine;
+using System.Collections;
+
+public class Entity : MonoBehaviour
+{
+    public Vector2Int gridPosition;
+
+    [Header("Stats")]
+    public int maxHP = 10;
+    public int currentHP;
+
+    public int attack = 2;
+    public int defense = 1;
+
+    public bool isDead = false;
+
+    private DamageFlash flash;
+    private AttackAnimation attackAnim;
+
+    void Start()
+    {
+        flash = GetComponent<DamageFlash>();
+        attackAnim = GetComponent<AttackAnimation>();
+
+        currentHP = maxHP;
+
+        gridPosition = WorldToGrid(transform.position);
+
+        GridManager.Instance.RegisterEntity(gridPosition, this);
+
+        UpdateWorldPosition();
+    }
+
+    Vector2Int WorldToGrid(Vector3 pos)
+    {
+        return new Vector2Int(
+            Mathf.RoundToInt(pos.x),
+            Mathf.RoundToInt(pos.y)
+        );
+    }
+
+    public void MoveTo(Vector2Int newPos)
+    {
+        if (isDead)
+            return;
+
+        GridManager.Instance.MoveEntity(gridPosition, newPos, this);
+
+        gridPosition = newPos;
+
+        UpdateWorldPosition();
+    }
+
+    void UpdateWorldPosition()
+    {
+        transform.position = new Vector3(
+            gridPosition.x + 0.5f,
+            gridPosition.y + 0.5f,
+            0
+        );
+    }
+
+    public void Attack(Entity target)
+    {
+        if (isDead)
+            return;
+
+        if (target == null)
+            return;
+
+        StartCoroutine(AttackRoutine(target));
+    }
+
+    IEnumerator AttackRoutine(Entity target)
+    {
+        if (attackAnim != null)
+        {
+            yield return StartCoroutine(
+                attackAnim.PlayAttack(target.transform.position)
+            );
+        }
+
+        if (target != null)
+        {
+            target.TakeDamage(attack);
+        }
+    }
+
+    public void TakeDamage(int damage)
+    {
+        if (isDead)
+            return;
+
+        int finalDamage = Mathf.Max(damage - defense, 1);
+
+        currentHP -= finalDamage;
+
+        Debug.Log(gameObject.name + " took " + finalDamage + " damage. HP: " + currentHP);
+
+        if (flash != null)
+            flash.Flash();
+
+        if (DamageNumberSpawner.Instance != null)
+        {
+            DamageNumberSpawner.Instance.SpawnDamageNumber(
+                finalDamage,
+                transform.position + Vector3.up * 0.6f
+            );
+        }
+
+        if (currentHP <= 0)
+            Die();
+    }
+
+    void Die()
+    {
+        if (isDead)
+            return;
+
+        isDead = true;
+
+        GridManager.Instance.RemoveEntity(gridPosition);
+
+        Debug.Log(gameObject.name + " died");
+
+        Destroy(gameObject);
+    }
+}
+```
+
+
 ## EnemyAI.cs
 
 ```csharp
+
 using UnityEngine;
 
 public class EnemyAI : MonoBehaviour
@@ -270,7 +597,10 @@ public class EnemyAI : MonoBehaviour
 
     public void TakeTurn()
     {
-        if (player == null || entity == null)
+        if (entity == null || player == null)
+            return;
+
+        if (entity.isDead)
             return;
 
         Vector2Int direction =
@@ -293,14 +623,12 @@ public class EnemyAI : MonoBehaviour
 
         Vector2Int target = entity.gridPosition + direction;
 
-        // NÃO deixa entrar na célula do player
         if (target == player.gridPosition)
         {
-            Debug.Log("Enemy atacaria o player aqui");
+            entity.Attack(player);
             return;
         }
 
-        // verifica ocupação do grid
         if (GridManager.Instance.IsCellOccupied(target))
             return;
 
@@ -309,157 +637,163 @@ public class EnemyAI : MonoBehaviour
 }
 ```
 
-## GridManager.cs
+
+## DamageNumberSpawner.cs
 
 ```csharp
-using System.Collections.Generic;
+
 using UnityEngine;
 
-public class GridManager : MonoBehaviour
+public class DamageNumberSpawner : MonoBehaviour
 {
-    public static GridManager Instance;
+    public static DamageNumberSpawner Instance;
 
-    private Dictionary<Vector2Int, Entity> grid =
-        new Dictionary<Vector2Int, Entity>();
+    public GameObject damageNumberPrefab;
 
     void Awake()
     {
         Instance = this;
     }
 
-    public bool IsCellOccupied(Vector2Int pos)
+    public void SpawnDamageNumber(int damage, Vector3 position)
     {
-        return grid.ContainsKey(pos);
-    }
+        GameObject obj = Instantiate(damageNumberPrefab, position, Quaternion.identity);
 
-    public Entity GetEntityAt(Vector2Int pos)
-    {
-        if (grid.ContainsKey(pos))
-            return grid[pos];
+        DamageNumber number = obj.GetComponent<DamageNumber>();
 
-        return null;
-    }
-
-    public void RegisterEntity(Vector2Int pos, Entity entity)
-    {
-        grid[pos] = entity;
-    }
-
-    public void MoveEntity(Vector2Int oldPos, Vector2Int newPos, Entity entity)
-    {
-        grid.Remove(oldPos);
-        grid[newPos] = entity;
-    }
-
-    public void RemoveEntity(Vector2Int pos)
-    {
-        grid.Remove(pos);
-    }
-}
-```
-
-## GridDebug.cs
-
-```csharp
-using UnityEngine;
-
-public class GridDebug : MonoBehaviour
-{
-    public int gridWidth = 20;
-    public int gridHeight = 20;
-
-    public float cellSize = 1f;
-
-    void OnDrawGizmos()
-    {
-        Gizmos.color = Color.yellow;
-
-        for (int x = -gridWidth; x < gridWidth; x++)
+        if (number != null)
         {
-            for (int y = -gridHeight; y < gridHeight; y++)
-            {
-                Vector3 pos = new Vector3(
-                    x + 0.5f,
-                    y + 0.5f,
-                    0
-                );
-
-                Gizmos.DrawSphere(pos, 0.05f);
-            }
+            number.Setup(damage);
         }
     }
 }
 ```
 
-## TurnManager.cs
+
+## DamageNumber.cs
 
 ```csharp
+
 using UnityEngine;
-using System.Collections.Generic;
+using TMPro;
 
-public class TurnManager : MonoBehaviour
+public class DamageNumber : MonoBehaviour
 {
-    public static TurnManager Instance;
+    public float moveSpeed = 1.5f;
+    public float lifetime = 1f;
 
-    public enum TurnState
-    {
-        PlayerTurn,
-        EnemyTurn
-    }
-
-    public TurnState currentState;
-
-    private List<Entity> enemies = new List<Entity>();
+    private TextMeshProUGUI textMesh;
 
     void Awake()
     {
-        Instance = this;
+        textMesh = GetComponentInChildren<TextMeshProUGUI>();
     }
 
-    void Start()
+    public void Setup(int damage)
     {
-        currentState = TurnState.PlayerTurn;
-
-        RegisterEnemies();
+        textMesh.text = "-" + damage.ToString();
     }
 
-    void RegisterEnemies()
+    void Update()
     {
-        EnemyAI[] foundEnemies = FindObjectsOfType<EnemyAI>();
+        transform.position += Vector3.up * moveSpeed * Time.deltaTime;
 
-        foreach (EnemyAI enemy in foundEnemies)
+        lifetime -= Time.deltaTime;
+
+        if (lifetime <= 0f)
         {
-            enemies.Add(enemy.GetComponent<Entity>());
+            Destroy(gameObject);
         }
-    }
-
-    public bool IsPlayerTurn()
-    {
-        return currentState == TurnState.PlayerTurn;
-    }
-
-    public void EndPlayerTurn()
-    {
-        currentState = TurnState.EnemyTurn;
-
-        StartCoroutine(EnemyTurn());
-    }
-
-    System.Collections.IEnumerator EnemyTurn()
-    {
-        foreach (Entity enemy in enemies)
-        {
-            EnemyAI ai = enemy.GetComponent<EnemyAI>();
-
-            if (ai != null)
-            {
-                ai.TakeTurn();
-            }
-
-            yield return new WaitForSeconds(0.2f);
-        }
-
-        currentState = TurnState.PlayerTurn;
     }
 }
 ```
+
+
+## DamageFlash.cs
+
+```csharp
+
+using UnityEngine;
+using System.Collections;
+
+public class DamageFlash : MonoBehaviour
+{
+    private SpriteRenderer sprite;
+
+    public float flashTime = 0.12f;
+    public Color flashColor = Color.red;
+
+    void Awake()
+    {
+        sprite = GetComponent<SpriteRenderer>();
+
+        if (sprite == null)
+        {
+            Debug.LogWarning("DamageFlash: SpriteRenderer não encontrado em " + gameObject.name);
+        }
+    }
+
+    public void Flash()
+    {
+        if (sprite != null)
+        {
+            StartCoroutine(FlashRoutine());
+        }
+    }
+
+    IEnumerator FlashRoutine()
+    {
+        Color original = sprite.color;
+
+        sprite.color = flashColor;
+
+        yield return new WaitForSeconds(flashTime);
+
+        sprite.color = original;
+    }
+}
+```
+
+
+## AttackAnimation.cs
+
+```csharp
+
+using UnityEngine;
+using System.Collections;
+
+public class AttackAnimation : MonoBehaviour
+{
+    public float lungeDistance = 0.2f;
+    public float lungeSpeed = 8f;
+
+    public IEnumerator PlayAttack(Vector3 targetPosition)
+    {
+        Vector3 startPosition = transform.position;
+
+        Vector3 direction = (targetPosition - startPosition).normalized;
+
+        Vector3 attackPosition = startPosition + direction * lungeDistance;
+
+        float t = 0;
+
+        while (t < 1)
+        {
+            t += Time.deltaTime * lungeSpeed;
+            transform.position = Vector3.Lerp(startPosition, attackPosition, t);
+            yield return null;
+        }
+
+        t = 0;
+
+        while (t < 1)
+        {
+            t += Time.deltaTime * lungeSpeed;
+            transform.position = Vector3.Lerp(attackPosition, startPosition, t);
+            yield return null;
+        }
+    }
+}
+```
+
+

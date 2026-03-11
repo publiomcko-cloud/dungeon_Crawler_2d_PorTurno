@@ -1,106 +1,103 @@
 Documento de Continuidade do Projeto
 Dungeon Crawler 2D Turn-Based (Unity)
-Objetivo do projeto
 
-Criar um roguelike / dungeon crawler 2D baseado em grid com sistema de turnos.
+Este documento descreve o estado atual do projeto, arquitetura do código e próximos passos.
+Ele serve como checkpoint de desenvolvimento para continuar o projeto em novas conversas.
 
-Características planejadas:
+------------------------------------------------
 
-Movimento em grid quadrado
+VISÃO GERAL DO PROJETO
 
-Sistema turn-based
+Objetivo:
 
-Player move → inimigos movem
+Criar um Dungeon Crawler / Roguelike 2D baseado em grid com sistema de turnos.
 
-Combate corpo a corpo
+Características principais do design:
 
-Geração procedural de dungeon
+• Movimento em grid quadrado
+• Sistema turn-based
+• Player move → inimigos movem
+• Combate corpo a corpo
+• Dungeon procedural (planejado)
+• Loop roguelike simples (planejado)
 
-Loop roguelike simples
+O projeto está sendo desenvolvido em Unity usando um projeto Core 2D limpo.
 
-O projeto está sendo desenvolvido em Unity Core 2D (projeto limpo).
+------------------------------------------------
 
-Estado atual do projeto
+ESTADO ATUAL DO PROJETO
 
-O jogo já possui um protótipo funcional com movimento e turnos.
+O projeto possui um protótipo funcional com:
 
-Atualmente o sistema permite:
+✔ grid system
+✔ player movement
+✔ enemy movement
+✔ turn system
+✔ animação de movimento
+✔ bounce ao parar
+✔ debug visual do grid
 
-Player
+Ainda NÃO possui:
 
-Movimento por setas do teclado
+✘ combate implementado
+✘ dano
+✘ morte de entidades
+✘ habilidades
+✘ geração procedural
+✘ loop roguelike
 
-Movimento em grid
+------------------------------------------------
 
-Movimento suavizado (lerp)
+ARQUITETURA DO CÓDIGO
 
-Animação de movimento
+A arquitetura é simples e baseada em entidades.
 
-Bounce visual ao parar
+Classes principais:
 
-Inimigos
-
-Seguem o player
-
-Movimento em grid
-
-Turnos controlados pelo TurnManager
-
-Grid
-
-Sistema centralizado de ocupação
-
-Registro de entidades
-
-Controle de colisão entre entidades
-
-Turnos
-
-Fluxo atual:
-
-Player Move
-↓
-EndPlayerTurn()
-↓
-EnemyTurn()
-↓
-PlayerTurn
-Arquitetura atual do código
-
-O projeto usa arquitetura simples baseada em entidades.
-
-Classe central
 Entity
+PlayerGridMovement
+EnemyAI
+GridManager
+TurnManager
+GridDebug
+
+------------------------------------------------
+
+ENTITY
+
+Classe central do jogo.
 
 Responsável por:
 
-posição no grid
+• posição no grid
+• HP
+• ataque
+• defesa
+• movimentação
+• dano
+• morte
 
-HP
+Variáveis principais:
 
-ataque
-
-defesa
-
-movimentação
-
-dano
-
-morte
+Vector2Int gridPosition
+int maxHP
+int currentHP
+int attack
+int defense
 
 Funções principais:
 
-MoveTo()
-TakeDamage()
+MoveTo(Vector2Int newPos)
+TakeDamage(int damage)
 Die()
 
-Registro no grid:
+A entidade se registra automaticamente no grid no Start():
 
 GridManager.Instance.RegisterEntity()
 
-fullcode
+------------------------------------------------
 
-Sistema de Grid
+GRID SYSTEM
 
 Classe:
 
@@ -108,29 +105,28 @@ GridManager
 
 Responsabilidades:
 
-armazenar entidades no grid
+• armazenar entidades no grid
+• verificar ocupação
+• mover entidades
+• remover entidades
 
-verificar ocupação
-
-mover entidades
-
-remover entidades
-
-Estrutura usada:
+Estrutura atual:
 
 Dictionary<Vector2Int, Entity>
 
+Cada célula do grid contém apenas UMA entidade.
+
 Funções principais:
 
-IsCellOccupied()
-GetEntityAt()
-RegisterEntity()
-MoveEntity()
-RemoveEntity()
+IsCellOccupied(Vector2Int pos)
+GetEntityAt(Vector2Int pos)
+RegisterEntity(Vector2Int pos, Entity entity)
+MoveEntity(Vector2Int oldPos, Vector2Int newPos, Entity entity)
+RemoveEntity(Vector2Int pos)
 
-fullcode
+------------------------------------------------
 
-Sistema de Turnos
+TURN SYSTEM
 
 Classe:
 
@@ -141,7 +137,7 @@ Estados:
 PlayerTurn
 EnemyTurn
 
-Fluxo:
+Fluxo de turno atual:
 
 PlayerMove
 ↓
@@ -149,33 +145,29 @@ EndPlayerTurn()
 ↓
 EnemyTurn coroutine
 ↓
-Enemies move
+Todos os inimigos executam TakeTurn()
 ↓
 PlayerTurn
 
-Inimigos são registrados automaticamente no início:
+Inimigos são registrados automaticamente no Start():
 
 FindObjectsOfType<EnemyAI>()
 
-fullcode
+------------------------------------------------
 
-Sistema de Movimento do Player
+PLAYER MOVEMENT
 
 Classe:
 
 PlayerGridMovement
 
-Funções:
+Funções principais:
 
-ler input
-
-validar movimento
-
-iniciar animação
-
-mover entidade
-
-finalizar turno
+• ler input do teclado
+• validar movimento
+• iniciar animação
+• mover entidade
+• finalizar turno
 
 Fluxo:
 
@@ -187,19 +179,19 @@ Entity.MoveTo()
 ↓
 AnimateMovement()
 ↓
+BounceEffect()
+↓
 EndPlayerTurn()
 
-Inclui:
+Características:
 
-animação
+• movimento suave com Lerp
+• flip automático do sprite
+• bounce visual ao parar
 
-sprite flip
+------------------------------------------------
 
-bounce effect
-
-fullcode
-
-IA do Inimigo
+ENEMY AI
 
 Classe:
 
@@ -207,22 +199,32 @@ EnemyAI
 
 Lógica atual:
 
-Calcula direção para o player
+• localiza o player
+• calcula direção dominante
+• tenta mover uma célula em direção ao player
 
-Escolhe eixo dominante
+Pseudo lógica:
 
-Move uma célula
+direction = player.gridPosition - entity.gridPosition
 
-Evita célula ocupada
+Escolhe eixo dominante (X ou Y)
 
-Não entra na célula do player
+Vector2Int target = entity.gridPosition + direction
 
-Vector2Int direction =
-player.gridPosition - entity.gridPosition;
+Regras atuais:
 
-fullcode
+• inimigo NÃO entra na célula do player
+• inimigo NÃO entra em célula ocupada
 
-Ferramenta de Debug
+Atualmente o ataque ainda não está implementado.
+
+Quando adjacente ao player aparece log:
+
+"Enemy atacaria o player aqui"
+
+------------------------------------------------
+
+GRID DEBUG
 
 Classe:
 
@@ -232,18 +234,17 @@ Função:
 
 Desenhar gizmos do grid na cena.
 
-Isso facilita visualizar:
+Isso ajuda a visualizar:
 
-centros das células
+• centros das células
+• alinhamento do player
+• alinhamento dos inimigos
 
-alinhamento do player
+------------------------------------------------
 
-alinhamento dos inimigos
+CONFIGURAÇÃO NA UNITY
 
-fullcode
-
-Configurações importantes na Unity
-Player
+PLAYER
 
 Componentes:
 
@@ -256,137 +257,171 @@ Player
 Tag obrigatória:
 
 Player
-Enemy
+
+------------------------------------------------
+
+ENEMY
+
+Componentes:
+
 Enemy
  ├ Entity
  └ EnemyAI
-Managers
 
-Na cena devem existir:
+------------------------------------------------
+
+MANAGERS NA SCENE
+
+Devem existir na cena:
 
 GridManager
 TurnManager
 
-Cada um como GameObject vazio com seus scripts.
+Cada um em um GameObject vazio com seu script.
 
-Sistema de coordenadas
+------------------------------------------------
 
-Células do grid usam:
+SISTEMA DE COORDENADAS
+
+Grid usa:
 
 Vector2Int
 
-Posição no mundo:
+Conversão para mundo:
 
 x + 0.5
 y + 0.5
 
-Isso garante que sprites fiquem no centro da célula.
+Isso centraliza os sprites na célula.
 
-O que já foi resolvido durante o desenvolvimento
+------------------------------------------------
 
-Problemas que já foram corrigidos:
+PROBLEMAS JÁ RESOLVIDOS
 
-player entre células
+Durante o desenvolvimento foram resolvidos:
 
-inimigos ocupando mesma célula
+✔ player entre células
+✔ alinhamento do grid
+✔ inimigos ocupando mesma célula
+✔ movimento suave
+✔ animação de movimento
+✔ bounce visual
+✔ turn system funcional
+✔ debug visual do grid
 
-animação durante movimento
+------------------------------------------------
 
-movimento suave
+EXPERIMENTOS REALIZADOS
 
-turnos funcionando
+Foi iniciado o design de um novo sistema:
 
-grid debug
+GRID MULTI-ENTIDADE
 
-entidade centralizando no grid
+Objetivo:
 
-Próximos passos do MVP
+Permitir até 4 entidades na mesma célula.
 
-Ordem recomendada para continuar o desenvolvimento.
+Isso permitiria combate em grupo.
 
-1️⃣ Sistema de combate
+Exemplo:
 
-Quando player tenta entrar na célula do inimigo:
+Célula Player
+P1
+P2
+P3
+P4
+
+Célula Enemy
+E1
+E2
+
+Combate planejado:
+
+P1 ataca
+P2 ataca
+P3 ataca
+P4 ataca
+
+Dano dividido entre defensores.
+
+Esse sistema ainda NÃO foi implementado completamente e está pausado.
+
+------------------------------------------------
+
+PRÓXIMA FEATURE DO MVP
+
+A próxima funcionalidade recomendada é:
+
+SISTEMA DE COMBATE
+
+Quando player tenta entrar na célula de um inimigo:
 
 Player Attack
 Enemy TakeDamage
 Enemy Die
 
-Implementar:
+Fluxo esperado:
 
-GridManager.GetEntityAt()
-Entity.TakeDamage()
+TryMove()
+↓
+Detect enemy
+↓
+Attack()
+↓
+TakeDamage()
+↓
+Die()
+
+------------------------------------------------
+
+PRÓXIMOS PASSOS DO MVP
+
+Ordem recomendada:
+
+1️⃣ Combate básico
+
+Player ataca inimigo.
+
 2️⃣ Animação de ataque
 
-Adicionar no player:
+Ataque visual.
 
-Attack animation
-Hit effect
-3️⃣ Feedback visual de dano
+3️⃣ Feedback de dano
 
-Adicionar:
+• Flash
+• Damage popup
 
-Flash sprite
-Damage popup
-Knockback opcional
 4️⃣ Spawn de inimigos
 
-Sistema simples:
+Spawner simples.
 
-SpawnEnemy(gridPosition)
 5️⃣ Dungeon procedural
 
-Gerar:
+• rooms
+• corridors
+• spawn points
 
-rooms
-corridors
-spawn points
 6️⃣ Loop roguelike
 
-Adicionar:
+• escada
+• próximo andar
+• reset dungeon
 
-escada
-próximo andar
-reset dungeon
-Melhorias estruturais futuras
+------------------------------------------------
 
-Recomendadas após MVP.
+MELHORIAS ESTRUTURAIS FUTURAS
 
-Grid System mais robusto
+Após o MVP:
 
-Criar:
+• Grid multi-entidade
+• Sistema de habilidades
+• Buff / debuff
+• Turn order system
+• Pathfinding inimigo
+• Sistema de status
 
-GridPosition struct
-GridObject
-OccupancyMap
-Sistema de estados de entidade
+------------------------------------------------
 
-Adicionar:
+VERSÃO DO PROJETO
 
-Idle
-Moving
-Attacking
-Dead
-Sistema de eventos
-
-Para desacoplar:
-
-OnTurnStart
-OnTurnEnd
-OnEntityMoved
-OnEntityDamaged
-Estado atual do MVP
-
-✔ Grid funcionando
-✔ Player movimento
-✔ Enemy AI básica
-✔ Turn system
-✔ Animações básicas
-✔ Grid debug
-
-Falta para MVP jogável:
-
-Combat
-Damage feedback
-Enemy death
-Dungeon generation
+Checkpoint gerado para continuidade em nova conversa com ChatGPT.
