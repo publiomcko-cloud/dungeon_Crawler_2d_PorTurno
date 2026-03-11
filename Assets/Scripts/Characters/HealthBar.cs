@@ -4,33 +4,80 @@ using UnityEngine.UI;
 public class HealthBar : MonoBehaviour
 {
     [SerializeField] private Entity entity;
-    [SerializeField] private Slider slider;
+    [SerializeField] private Image fillImage;
+    [SerializeField] private bool hideWhenFull = false;
 
     private void Awake()
     {
         if (entity == null)
             entity = GetComponentInParent<Entity>();
+    }
 
-        if (slider == null)
-            slider = GetComponent<Slider>();
+    private void OnEnable()
+    {
+        if (entity != null)
+        {
+            entity.OnHealthChanged += HandleHealthChanged;
+            entity.OnDied += HandleDied;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (entity != null)
+        {
+            entity.OnHealthChanged -= HandleHealthChanged;
+            entity.OnDied -= HandleDied;
+        }
     }
 
     private void Start()
     {
-        Refresh();
+        RefreshNow();
     }
 
-    private void Update()
+    private void HandleHealthChanged(int currentHP, int maxHP)
     {
-        Refresh();
+        UpdateFill(currentHP, maxHP);
+        RefreshVisibility(currentHP, maxHP);
     }
 
-    private void Refresh()
+    private void HandleDied()
     {
-        if (entity == null || slider == null)
+        UpdateFill(0, entity != null ? entity.maxHP : 1);
+        RefreshVisibility(0, entity != null ? entity.maxHP : 1);
+    }
+
+    private void RefreshNow()
+    {
+        if (entity == null || fillImage == null)
             return;
 
-        slider.maxValue = entity.maxHP;
-        slider.value = entity.CurrentHP;
+        UpdateFill(entity.CurrentHP, entity.maxHP);
+        RefreshVisibility(entity.CurrentHP, entity.maxHP);
+    }
+
+    private void UpdateFill(int currentHP, int maxHP)
+    {
+        if (fillImage == null)
+            return;
+
+        float value = maxHP > 0 ? (float)currentHP / maxHP : 0f;
+        fillImage.fillAmount = Mathf.Clamp01(value);
+    }
+
+    private void RefreshVisibility(int currentHP, int maxHP)
+    {
+        if (!hideWhenFull)
+        {
+            if (!gameObject.activeSelf)
+                gameObject.SetActive(true);
+            return;
+        }
+
+        bool shouldShow = currentHP > 0 && currentHP < maxHP;
+
+        if (gameObject.activeSelf != shouldShow)
+            gameObject.SetActive(shouldShow);
     }
 }

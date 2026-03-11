@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public enum Team
@@ -19,16 +20,21 @@ public class Entity : MonoBehaviour
     public Vector2Int GridPosition { get; private set; }
     public bool IsDead => CurrentHP <= 0;
 
+    public event Action<int, int> OnHealthChanged;
+    public event Action OnDied;
+
     private void Start()
     {
         CurrentHP = maxHP;
+        OnHealthChanged?.Invoke(CurrentHP, maxHP);
 
         Vector2Int startCell = new Vector2Int(
             Mathf.RoundToInt(transform.position.x),
             Mathf.RoundToInt(transform.position.y)
         );
 
-        GridManager.Instance.RegisterEntity(this, startCell);
+        if (GridManager.Instance != null)
+            GridManager.Instance.RegisterEntity(this, startCell);
     }
 
     public void SetGridPosition(Vector2Int newGridPosition)
@@ -39,19 +45,42 @@ public class Entity : MonoBehaviour
     public void ReceiveDamage(int amount)
     {
         if (IsDead) return;
+        if (amount <= 0) return;
 
         CurrentHP -= amount;
 
-        if (CurrentHP <= 0)
-        {
+        if (CurrentHP < 0)
             CurrentHP = 0;
+
+        OnHealthChanged?.Invoke(CurrentHP, maxHP);
+
+        if (CurrentHP <= 0)
             Die();
-        }
+    }
+
+    public void Heal(int amount)
+    {
+        if (IsDead) return;
+        if (amount <= 0) return;
+
+        CurrentHP += amount;
+
+        if (CurrentHP > maxHP)
+            CurrentHP = maxHP;
+
+        OnHealthChanged?.Invoke(CurrentHP, maxHP);
     }
 
     private void Die()
     {
-        GridManager.Instance.RemoveEntity(this);
+        if (IsDead == false)
+            return;
+
+        OnDied?.Invoke();
+
+        if (GridManager.Instance != null)
+            GridManager.Instance.RemoveEntity(this);
+
         Destroy(gameObject);
     }
 }

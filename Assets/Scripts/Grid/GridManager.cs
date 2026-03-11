@@ -10,6 +10,10 @@ public class GridManager : MonoBehaviour
     public int maxEntitiesPerCell = 4;
     public float slotOffset = 0.22f;
 
+    [Header("Walls")]
+    [SerializeField] private LayerMask wallLayer;
+    [SerializeField] private float wallCheckRadius = 0.2f;
+
     private readonly Dictionary<Vector2Int, List<Entity>> grid = new Dictionary<Vector2Int, List<Entity>>();
 
     private void Awake()
@@ -25,6 +29,18 @@ public class GridManager : MonoBehaviour
 
     public void RegisterEntity(Entity entity, Vector2Int cell)
     {
+        if (entity == null) return;
+        if (IsCellBlocked(cell))
+        {
+            Debug.LogWarning($"Tentativa de registrar entidade em célula bloqueada: {cell}");
+            return;
+        }
+
+        if (!grid.ContainsKey(cell))
+            grid[cell] = new List<Entity>();
+
+        CleanupCell(cell);
+
         if (!grid.ContainsKey(cell))
             grid[cell] = new List<Entity>();
 
@@ -34,13 +50,17 @@ public class GridManager : MonoBehaviour
             return;
         }
 
-        grid[cell].Add(entity);
+        if (!grid[cell].Contains(entity))
+            grid[cell].Add(entity);
+
         entity.SetGridPosition(cell);
         RefreshCellVisuals(cell);
     }
 
     public void RemoveEntity(Entity entity)
     {
+        if (entity == null) return;
+
         Vector2Int cell = entity.GridPosition;
 
         if (!grid.ContainsKey(cell))
@@ -59,6 +79,11 @@ public class GridManager : MonoBehaviour
         if (!grid.ContainsKey(cell))
             return new List<Entity>();
 
+        CleanupCell(cell);
+
+        if (!grid.ContainsKey(cell))
+            return new List<Entity>();
+
         return grid[cell].Where(e => e != null && !e.IsDead).ToList();
     }
 
@@ -66,9 +91,14 @@ public class GridManager : MonoBehaviour
     {
         List<Entity> result = new List<Entity>();
 
-        foreach (var pair in grid)
+        foreach (var cell in grid.Keys.ToList())
         {
-            foreach (var entity in pair.Value)
+            CleanupCell(cell);
+
+            if (!grid.ContainsKey(cell))
+                continue;
+
+            foreach (var entity in grid[cell])
             {
                 if (entity != null && !entity.IsDead && entity.team == team)
                     result.Add(entity);
@@ -82,11 +112,16 @@ public class GridManager : MonoBehaviour
     {
         List<Vector2Int> result = new List<Vector2Int>();
 
-        foreach (var pair in grid)
+        foreach (var cell in grid.Keys.ToList())
         {
-            bool hasTeam = pair.Value.Any(e => e != null && !e.IsDead && e.team == team);
+            CleanupCell(cell);
+
+            if (!grid.ContainsKey(cell))
+                continue;
+
+            bool hasTeam = grid[cell].Any(e => e != null && !e.IsDead && e.team == team);
             if (hasTeam)
-                result.Add(pair.Key);
+                result.Add(cell);
         }
 
         return result;
@@ -94,7 +129,14 @@ public class GridManager : MonoBehaviour
 
     public bool IsCellOccupied(Vector2Int cell)
     {
-        return grid.ContainsKey(cell) && GetEntitiesAtCell(cell).Count > 0;
+        return GetEntitiesAtCell(cell).Count > 0;
+    }
+
+    public bool IsCellBlocked(Vector2Int cell)
+    {
+        Vector2 world = GetCellCenterWorld(cell);
+        Collider2D hit = Physics2D.OverlapCircle(world, wallCheckRadius, wallLayer);
+        return hit != null;
     }
 
     public bool IsEnemyInCell(Vector2Int cell, Team team)
@@ -120,6 +162,9 @@ public class GridManager : MonoBehaviour
             return false;
 
         if (movers.Any(e => e.GridPosition != sourceCell))
+            return false;
+
+        if (IsCellBlocked(targetCell))
             return false;
 
         List<Entity> targetEntities = GetEntitiesAtCell(targetCell);
@@ -188,25 +233,33 @@ public class GridManager : MonoBehaviour
         if (!grid.ContainsKey(sourceCell))
             return;
 
+        CleanupCell(sourceCell);
+
+        if (!grid.ContainsKey(sourceCell))
+            return;
+
         if (!grid.ContainsKey(targetCell))
             grid[targetCell] = new List<Entity>();
 
         foreach (Entity mover in movers)
         {
-            grid[sourceCell].Remove(mover);
-            grid[targetCell].Add(mover);
+            if (grid.ContainsKey(sourceCell))
+                grid[sourceCell].Remove(mover);
+
+            if (!grid[targetCell].Contains(mover))
+                grid[targetCell].Add(mover);
+
             mover.SetGridPosition(targetCell);
         }
 
-        if (grid.ContainsKey(sourceCell))
-        {
-            if (grid[sourceCell].Count == 0)
-                grid.Remove(sourceCell);
-            else
-                RefreshCellVisuals(sourceCell);
-        }
+        CleanupCell(sourceCell);
+        CleanupCell(targetCell);
 
-        RefreshCellVisuals(targetCell);
+        if (grid.ContainsKey(sourceCell))
+            RefreshCellVisuals(sourceCell);
+
+        if (grid.ContainsKey(targetCell))
+            RefreshCellVisuals(targetCell);
     }
 
     public Vector3 GetCellCenterWorld(Vector2Int cell)
@@ -219,10 +272,14 @@ public class GridManager : MonoBehaviour
         if (!grid.ContainsKey(cell))
             return;
 
-        List<Entity> entities = grid[cell].Where(e => e != null).ToList();
-        int count = entities.Count;
+        CleanupCell(cell);
 
-        for (int i = 0; i < count; i++)
+        if (!grid.ContainsKey(cell))
+            return;
+
+        List<Entity> entities = grid[cell].Where(e => e != null && !e.IsDead).ToList();
+
+        for (int i = 0; i < entities.Count; i++)
         {
             entities[i].transform.position = GetSlotWorldPosition(cell, i);
         }
@@ -240,5 +297,16 @@ public class GridManager : MonoBehaviour
             case 3: return center + new Vector3( slotOffset, -slotOffset, 0f);
             default: return center;
         }
+    }
+
+    private void CleanupCell(Vector2Int cell)
+    {
+        if (!grid.ContainsKey(cell))
+            return;
+
+        grid[cell].RemoveAll(e => e == null || e.IsDead);
+
+        if (grid[cell].Count == 0)
+            grid.Remove(cell);
     }
 }
