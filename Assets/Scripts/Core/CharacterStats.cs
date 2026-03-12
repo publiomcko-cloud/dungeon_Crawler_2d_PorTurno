@@ -52,6 +52,27 @@ public class CharacterStats : MonoBehaviour
     public float Crit => GetFinalStats().crit;
 
     private bool initialized = false;
+    private EquipmentSlots equipmentSlots;
+
+    private void Awake()
+    {
+        equipmentSlots = GetComponent<EquipmentSlots>();
+    }
+
+    private void OnEnable()
+    {
+        if (equipmentSlots == null)
+            equipmentSlots = GetComponent<EquipmentSlots>();
+
+        if (equipmentSlots != null)
+            equipmentSlots.OnEquipmentChanged += HandleEquipmentChanged;
+    }
+
+    private void OnDisable()
+    {
+        if (equipmentSlots != null)
+            equipmentSlots.OnEquipmentChanged -= HandleEquipmentChanged;
+    }
 
     public void Initialize()
     {
@@ -60,6 +81,7 @@ public class CharacterStats : MonoBehaviour
 
         SanitizeReferences();
         RebuildLevelBonus();
+        RebuildItemBonus();
 
         CurrentHP = MaxHP;
         initialized = true;
@@ -86,6 +108,7 @@ public class CharacterStats : MonoBehaviour
         float healthPercent = oldMaxHP > 0 ? (float)CurrentHP / oldMaxHP : 1f;
 
         SanitizeReferences();
+        RebuildItemBonus();
 
         int newMaxHP = MaxHP;
 
@@ -201,6 +224,17 @@ public class CharacterStats : MonoBehaviour
         };
     }
 
+    private void RebuildItemBonus()
+    {
+        if (equipmentSlots == null)
+            equipmentSlots = GetComponent<EquipmentSlots>();
+
+        if (equipmentSlots != null)
+            itemBonus = equipmentSlots.GetTotalItemBonus();
+        else
+            itemBonus = new StatBlock { hp = 0, atk = 0, def = 0, ap = 0, crit = 0f };
+    }
+
     public bool SpendPointOnHP(int amount = 1)
     {
         if (!CanSpendPoints(amount)) return false;
@@ -296,6 +330,11 @@ public class CharacterStats : MonoBehaviour
         RebuildLevelBonus();
         RecalculateStats(true);
         OnXPChanged?.Invoke(currentXP, GetXPToNextLevel());
+    }
+
+    private void HandleEquipmentChanged()
+    {
+        RecalculateStats(true);
     }
 
     private void SanitizeReferences()

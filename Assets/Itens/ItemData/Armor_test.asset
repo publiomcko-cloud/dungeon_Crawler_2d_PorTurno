@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 393aa99d61971b949a6339e3e3e55ced, type: 3}
+  m_Name: Armor_test
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemName: New Item
+  description: 
+  slotType: 0
+  rarity: 0
+  requiredLevel: 1
+  value: 10
+  statBonus:
+    hp: 0
+    atk: 0
+    def: 0
+    ap: 0
+    crit: 0

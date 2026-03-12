@@ -5,14 +5,14 @@ using UnityEngine;
 public class StatBlock
 {
     [Header("Core")]
-    public int hp = 10;
-    public int atk = 3;
-    public int def = 0;
-    public int ap = 1;
+    public int hp;
+    public int atk;
+    public int def;
+    public int ap;
 
     [Header("Combat")]
     [Range(0f, 100f)]
-    public float crit = 5f;
+    public float crit;
 
     public StatBlock Clone()
     {

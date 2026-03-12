@@ -44,18 +44,23 @@ public class Entity : MonoBehaviour
     public event Action<int, int> OnXPChanged;
 
     private CharacterStats stats;
+    private EquipmentSlots equipmentSlots;
     private Vector3 targetWorldPosition;
     private bool targetInitialized = false;
 
     private void Awake()
     {
         stats = GetComponent<CharacterStats>();
+        equipmentSlots = GetComponent<EquipmentSlots>();
     }
 
     private void OnEnable()
     {
         if (stats == null)
             stats = GetComponent<CharacterStats>();
+
+        if (equipmentSlots == null)
+            equipmentSlots = GetComponent<EquipmentSlots>();
 
         if (stats != null)
         {
@@ -81,6 +86,9 @@ public class Entity : MonoBehaviour
     {
         if (stats == null)
             stats = GetComponent<CharacterStats>();
+
+        if (equipmentSlots == null)
+            equipmentSlots = GetComponent<EquipmentSlots>();
 
         if (stats != null)
             stats.Initialize();
@@ -109,6 +117,41 @@ public class Entity : MonoBehaviour
     public CharacterStats GetStatsComponent()
     {
         return stats;
+    }
+
+    public EquipmentSlots GetEquipmentSlots()
+    {
+        if (equipmentSlots == null)
+            equipmentSlots = GetComponent<EquipmentSlots>();
+
+        return equipmentSlots;
+    }
+
+    public bool EquipItem(ItemData item)
+    {
+        EquipmentSlots slots = GetEquipmentSlots();
+        if (slots == null || item == null)
+            return false;
+
+        return slots.Equip(item, Level);
+    }
+
+    public bool EquipGeneratedItem(GeneratedItemInstance item)
+    {
+        EquipmentSlots slots = GetEquipmentSlots();
+        if (slots == null || item == null)
+            return false;
+
+        return slots.EquipGenerated(item, Level);
+    }
+
+    public void UnequipItem(EquipmentSlotType slotType)
+    {
+        EquipmentSlots slots = GetEquipmentSlots();
+        if (slots == null)
+            return;
+
+        slots.Unequip(slotType);
     }
 
     public void AddXP(int amount)

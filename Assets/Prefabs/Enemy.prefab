@@ -135,6 +135,9 @@ GameObject:
   - component: {fileID: 7086453648598117627}
   - component: {fileID: -3839568728252179816}
   - component: {fileID: -6130756425457648402}
+  - component: {fileID: 1655498095056995512}
+  - component: {fileID: 6523342983318020471}
+  - component: {fileID: 5062308803675418364}
   m_Layer: 7
   m_Name: Enemy
   m_TagString: Untagged
@@ -291,13 +294,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Entity
   team: 1
-  maxHP: 10
-  attackDamage: 3
   moveSpeed: 6
   attackLungeDistance: 0.22
   attackLungeDuration: 0.08
   isAnimatingAttack: 0
   damageNumberAnchor: {fileID: 0}
+  xpReward: 5
 --- !u!95 &727652984137161037
 Animator:
   serializedVersion: 7
@@ -364,6 +366,124 @@ MonoBehaviour:
   flashColor: {r: 1, g: 0.35, b: 0.35, a: 1}
   flashDuration: 0.2
   flashCount: 2
+--- !u!114 &1655498095056995512
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3380452521548117270}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e130062b1b77d544b73b2f628a12bf4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
+  baseStats:
+    hp: 10
+    atk: 3
+    def: 0
+    ap: 1
+    crit: 5
+  levelBonus:
+    hp: 0
+    atk: 0
+    def: 0
+    ap: 0
+    crit: 0
+  pointBonus:
+    hp: 0
+    atk: 0
+    def: 0
+    ap: 0
+    crit: 0
+  itemBonus:
+    hp: 0
+    atk: 0
+    def: 0
+    ap: 0
+    crit: 0
+  level: 1
+  currentXP: 0
+  baseXPToNextLevel: 10
+  xpGrowthPerLevel: 5
+  statPointsPerLevel: 3
+  hpPerLevel: 2
+  atkPerLevel: 1
+  defPerLevel: 0
+  apPerLevel: 0
+  critPerLevel: 0
+  unspentStatPoints: 0
+--- !u!114 &6523342983318020471
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3380452521548117270}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 621d3255aa3ed0c44ac9e26491199a2b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EquipmentSlots
+  weapon: {fileID: 0}
+  armor: {fileID: 0}
+  accessory: {fileID: 0}
+  generatedWeapon:
+    itemName: 
+    description: 
+    slotType: 0
+    rarity: 0
+    requiredLevel: 0
+    value: 0
+    statBonus:
+      hp: 10
+      atk: 3
+      def: 0
+      ap: 1
+      crit: 5
+  generatedArmor:
+    itemName: 
+    description: 
+    slotType: 0
+    rarity: 0
+    requiredLevel: 0
+    value: 0
+    statBonus:
+      hp: 10
+      atk: 3
+      def: 0
+      ap: 1
+      crit: 5
+  generatedAccessory:
+    itemName: 
+    description: 
+    slotType: 0
+    rarity: 0
+    requiredLevel: 0
+    value: 0
+    statBonus:
+      hp: 10
+      atk: 3
+      def: 0
+      ap: 1
+      crit: 5
+--- !u!114 &5062308803675418364
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3380452521548117270}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1578cacda8c80b7488921a354ff18efd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LootDropper
+  groundItemPrefab: {fileID: 1055958160236924812, guid: 5ad213354f8bc5e458832a2ed44d25af, type: 3}
+  lootTable:
+  - staticItem: {fileID: 11400000, guid: 4c73c69196df6cb4cbacc7e6ad32fa7f, type: 2}
+    generatedProfile: {fileID: 11400000, guid: e4aa3874aac320643809a539cb3645e9, type: 2}
+    dropChance: 1
 --- !u!1 &3697052405005247392
 GameObject:
   m_ObjectHideFlags: 0

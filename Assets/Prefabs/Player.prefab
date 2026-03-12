@@ -18,6 +18,8 @@ GameObject:
   - component: {fileID: 6400158922240568134}
   - component: {fileID: 6902811252456153405}
   - component: {fileID: 4165491380731225060}
+  - component: {fileID: 8977479794168297923}
+  - component: {fileID: 2293833872687648989}
   m_Layer: 7
   m_Name: Player
   m_TagString: Player
@@ -198,13 +200,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Entity
   team: 0
-  maxHP: 25
-  attackDamage: 5
   moveSpeed: 6
   attackLungeDistance: 0.22
   attackLungeDuration: 0.08
   isAnimatingAttack: 0
   damageNumberAnchor: {fileID: 0}
+  xpReward: 5
 --- !u!95 &5447965957265274592
 Animator:
   serializedVersion: 7
@@ -271,6 +272,107 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AttackAnimation
   lungeDistance: 0.2
   lungeSpeed: 8
+--- !u!114 &8977479794168297923
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2396094840041491219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e130062b1b77d544b73b2f628a12bf4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
+  baseStats:
+    hp: 10
+    atk: 3
+    def: 0
+    ap: 1
+    crit: 5
+  levelBonus:
+    hp: 0
+    atk: 0
+    def: 0
+    ap: 0
+    crit: 0
+  pointBonus:
+    hp: 0
+    atk: 0
+    def: 0
+    ap: 0
+    crit: 0
+  itemBonus:
+    hp: 0
+    atk: 0
+    def: 0
+    ap: 0
+    crit: 0
+  level: 1
+  currentXP: 0
+  baseXPToNextLevel: 100
+  xpGrowthPerLevel: 5
+  statPointsPerLevel: 3
+  hpPerLevel: 2
+  atkPerLevel: 1
+  defPerLevel: 0
+  apPerLevel: 0
+  critPerLevel: 0
+  unspentStatPoints: 0
+--- !u!114 &2293833872687648989
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2396094840041491219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 621d3255aa3ed0c44ac9e26491199a2b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EquipmentSlots
+  weapon: {fileID: 0}
+  armor: {fileID: 0}
+  accessory: {fileID: 0}
+  generatedWeapon:
+    itemName: 
+    description: 
+    slotType: 0
+    rarity: 0
+    requiredLevel: 0
+    value: 0
+    statBonus:
+      hp: 10
+      atk: 3
+      def: 0
+      ap: 1
+      crit: 5
+  generatedArmor:
+    itemName: 
+    description: 
+    slotType: 0
+    rarity: 0
+    requiredLevel: 0
+    value: 0
+    statBonus:
+      hp: 10
+      atk: 3
+      def: 0
+      ap: 1
+      crit: 5
+  generatedAccessory:
+    itemName: 
+    description: 
+    slotType: 0
+    rarity: 0
+    requiredLevel: 0
+    value: 0
+    statBonus:
+      hp: 10
+      atk: 3
+      def: 0
+      ap: 1
+      crit: 5
 --- !u!1 &3652057163632071213
 GameObject:
   m_ObjectHideFlags: 0
