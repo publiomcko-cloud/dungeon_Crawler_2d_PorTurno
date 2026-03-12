@@ -302,12 +302,6 @@ MonoBehaviour:
     def: 0
     ap: 0
     crit: 0
-  itemBonus:
-    hp: 0
-    atk: 0
-    def: 0
-    ap: 0
-    crit: 0
   level: 1
   currentXP: 0
   baseXPToNextLevel: 100
@@ -342,11 +336,11 @@ MonoBehaviour:
     requiredLevel: 0
     value: 0
     statBonus:
-      hp: 10
-      atk: 3
+      hp: 0
+      atk: 0
       def: 0
-      ap: 1
-      crit: 5
+      ap: 0
+      crit: 0
   generatedArmor:
     itemName: 
     description: 
@@ -355,11 +349,11 @@ MonoBehaviour:
     requiredLevel: 0
     value: 0
     statBonus:
-      hp: 10
-      atk: 3
+      hp: 0
+      atk: 0
       def: 0
-      ap: 1
-      crit: 5
+      ap: 0
+      crit: 0
   generatedAccessory:
     itemName: 
     description: 
@@ -368,11 +362,11 @@ MonoBehaviour:
     requiredLevel: 0
     value: 0
     statBonus:
-      hp: 10
-      atk: 3
+      hp: 0
+      atk: 0
       def: 0
-      ap: 1
-      crit: 5
+      ap: 0
+      crit: 0
 --- !u!1 &3652057163632071213
 GameObject:
   m_ObjectHideFlags: 0

@@ -8,9 +8,8 @@ public class CharacterStats : MonoBehaviour
     [SerializeField] private StatBlock baseStats = new StatBlock();
 
     [Header("Bonus Stats")]
-    [SerializeField] private StatBlock levelBonus = new StatBlock { hp = 0, atk = 0, def = 0, ap = 0, crit = 0f };
-    [SerializeField] private StatBlock pointBonus = new StatBlock { hp = 0, atk = 0, def = 0, ap = 0, crit = 0f };
-    [SerializeField] private StatBlock itemBonus = new StatBlock { hp = 0, atk = 0, def = 0, ap = 0, crit = 0f };
+    [SerializeField] private StatBlock levelBonus = new StatBlock();
+    [SerializeField] private StatBlock pointBonus = new StatBlock();
 
     [Header("Level System")]
     [SerializeField] private int level = 1;
@@ -37,7 +36,7 @@ public class CharacterStats : MonoBehaviour
     public StatBlock BaseStats => baseStats;
     public StatBlock LevelBonus => levelBonus;
     public StatBlock PointBonus => pointBonus;
-    public StatBlock ItemBonus => itemBonus;
+    public StatBlock ItemBonus => GetRuntimeItemBonus();
 
     public int Level => level;
     public int CurrentXP => currentXP;
@@ -81,7 +80,6 @@ public class CharacterStats : MonoBehaviour
 
         SanitizeReferences();
         RebuildLevelBonus();
-        RebuildItemBonus();
 
         CurrentHP = MaxHP;
         initialized = true;
@@ -97,7 +95,7 @@ public class CharacterStats : MonoBehaviour
 
         StatBlock total = StatBlock.Add(baseStats, levelBonus);
         total = StatBlock.Add(total, pointBonus);
-        total = StatBlock.Add(total, itemBonus);
+        total = StatBlock.Add(total, GetRuntimeItemBonus());
         total.ClampAsFinalStats();
         return total;
     }
@@ -108,7 +106,6 @@ public class CharacterStats : MonoBehaviour
         float healthPercent = oldMaxHP > 0 ? (float)CurrentHP / oldMaxHP : 1f;
 
         SanitizeReferences();
-        RebuildItemBonus();
 
         int newMaxHP = MaxHP;
 
@@ -224,15 +221,45 @@ public class CharacterStats : MonoBehaviour
         };
     }
 
-    private void RebuildItemBonus()
+    private StatBlock GetRuntimeItemBonus()
     {
         if (equipmentSlots == null)
             equipmentSlots = GetComponent<EquipmentSlots>();
 
-        if (equipmentSlots != null)
-            itemBonus = equipmentSlots.GetTotalItemBonus();
-        else
-            itemBonus = new StatBlock { hp = 0, atk = 0, def = 0, ap = 0, crit = 0f };
+        if (equipmentSlots == null)
+        {
+            return new StatBlock
+            {
+                hp = 0,
+                atk = 0,
+                def = 0,
+                ap = 0,
+                crit = 0f
+            };
+        }
+
+        StatBlock total = equipmentSlots.GetTotalItemBonus();
+
+        if (total == null)
+        {
+            return new StatBlock
+            {
+                hp = 0,
+                atk = 0,
+                def = 0,
+                ap = 0,
+                crit = 0f
+            };
+        }
+
+        return new StatBlock
+        {
+            hp = total.hp,
+            atk = total.atk,
+            def = total.def,
+            ap = total.ap,
+            crit = total.crit
+        };
     }
 
     public bool SpendPointOnHP(int amount = 1)
@@ -312,15 +339,6 @@ public class CharacterStats : MonoBehaviour
         RecalculateStats(preserveHealthPercent);
     }
 
-    public void SetItemBonus(StatBlock newItemBonus, bool preserveHealthPercent = true)
-    {
-        if (newItemBonus == null)
-            return;
-
-        itemBonus = newItemBonus.Clone();
-        RecalculateStats(preserveHealthPercent);
-    }
-
     public void SetProgressionData(int newLevel, int newXP, int newUnspentStatPoints)
     {
         level = Mathf.Max(1, newLevel);
@@ -340,9 +358,8 @@ public class CharacterStats : MonoBehaviour
     private void SanitizeReferences()
     {
         if (baseStats == null) baseStats = new StatBlock();
-        if (levelBonus == null) levelBonus = new StatBlock { hp = 0, atk = 0, def = 0, ap = 0, crit = 0f };
-        if (pointBonus == null) pointBonus = new StatBlock { hp = 0, atk = 0, def = 0, ap = 0, crit = 0f };
-        if (itemBonus == null) itemBonus = new StatBlock { hp = 0, atk = 0, def = 0, ap = 0, crit = 0f };
+        if (levelBonus == null) levelBonus = new StatBlock();
+        if (pointBonus == null) pointBonus = new StatBlock();
 
         level = Mathf.Max(1, level);
         currentXP = Mathf.Max(0, currentXP);

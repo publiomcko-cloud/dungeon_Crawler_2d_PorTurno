@@ -19,9 +19,19 @@ public class EquipmentSlots : MonoBehaviour
     public ItemData Armor => armor;
     public ItemData Accessory => accessory;
 
-    public GeneratedItemInstance GeneratedWeapon => generatedWeapon;
-    public GeneratedItemInstance GeneratedArmor => generatedArmor;
-    public GeneratedItemInstance GeneratedAccessory => generatedAccessory;
+    public GeneratedItemInstance GeneratedWeapon => IsValidGeneratedItem(generatedWeapon) ? generatedWeapon : null;
+    public GeneratedItemInstance GeneratedArmor => IsValidGeneratedItem(generatedArmor) ? generatedArmor : null;
+    public GeneratedItemInstance GeneratedAccessory => IsValidGeneratedItem(generatedAccessory) ? generatedAccessory : null;
+
+    private void Awake()
+    {
+        NormalizeGeneratedItems();
+    }
+
+    private void OnValidate()
+    {
+        NormalizeGeneratedItems();
+    }
 
     public ItemData GetItemInSlot(EquipmentSlotType slotType)
     {
@@ -38,9 +48,9 @@ public class EquipmentSlots : MonoBehaviour
     {
         switch (slotType)
         {
-            case EquipmentSlotType.Weapon: return generatedWeapon;
-            case EquipmentSlotType.Armor: return generatedArmor;
-            case EquipmentSlotType.Accessory: return generatedAccessory;
+            case EquipmentSlotType.Weapon: return GeneratedWeapon;
+            case EquipmentSlotType.Armor: return GeneratedArmor;
+            case EquipmentSlotType.Accessory: return GeneratedAccessory;
             default: return null;
         }
     }
@@ -87,24 +97,27 @@ public class EquipmentSlots : MonoBehaviour
 
         ClearSlot(item.slotType);
 
+        GeneratedItemInstance clone = item.Clone();
+
         switch (item.slotType)
         {
             case EquipmentSlotType.Weapon:
-                generatedWeapon = item.Clone();
+                generatedWeapon = clone;
                 break;
 
             case EquipmentSlotType.Armor:
-                generatedArmor = item.Clone();
+                generatedArmor = clone;
                 break;
 
             case EquipmentSlotType.Accessory:
-                generatedAccessory = item.Clone();
+                generatedAccessory = clone;
                 break;
 
             default:
                 return false;
         }
 
+        NormalizeGeneratedItems();
         OnEquipmentChanged?.Invoke();
         return true;
     }
@@ -123,7 +136,9 @@ public class EquipmentSlots : MonoBehaviour
     {
         bool changed =
             weapon != null || armor != null || accessory != null ||
-            generatedWeapon != null || generatedArmor != null || generatedAccessory != null;
+            IsValidGeneratedItem(generatedWeapon) ||
+            IsValidGeneratedItem(generatedArmor) ||
+            IsValidGeneratedItem(generatedAccessory);
 
         weapon = null;
         armor = null;
@@ -139,6 +154,8 @@ public class EquipmentSlots : MonoBehaviour
 
     public StatBlock GetTotalItemBonus()
     {
+        NormalizeGeneratedItems();
+
         StatBlock total = new StatBlock
         {
             hp = 0,
@@ -173,7 +190,10 @@ public class EquipmentSlots : MonoBehaviour
 
     private void AddGeneratedItemBonus(ref StatBlock total, GeneratedItemInstance item)
     {
-        if (item == null || item.statBonus == null)
+        if (!IsValidGeneratedItem(item))
+            return;
+
+        if (item.statBonus == null)
             return;
 
         total.hp += item.statBonus.hp;
@@ -188,13 +208,13 @@ public class EquipmentSlots : MonoBehaviour
         switch (slotType)
         {
             case EquipmentSlotType.Weapon:
-                return weapon != null || generatedWeapon != null;
+                return weapon != null || IsValidGeneratedItem(generatedWeapon);
 
             case EquipmentSlotType.Armor:
-                return armor != null || generatedArmor != null;
+                return armor != null || IsValidGeneratedItem(generatedArmor);
 
             case EquipmentSlotType.Accessory:
-                return accessory != null || generatedAccessory != null;
+                return accessory != null || IsValidGeneratedItem(generatedAccessory);
 
             default:
                 return false;
@@ -220,5 +240,37 @@ public class EquipmentSlots : MonoBehaviour
                 generatedAccessory = null;
                 break;
         }
+    }
+
+    private void NormalizeGeneratedItems()
+    {
+        if (!IsValidGeneratedItem(generatedWeapon))
+            generatedWeapon = null;
+
+        if (!IsValidGeneratedItem(generatedArmor))
+            generatedArmor = null;
+
+        if (!IsValidGeneratedItem(generatedAccessory))
+            generatedAccessory = null;
+    }
+
+    private bool IsValidGeneratedItem(GeneratedItemInstance item)
+    {
+        if (item == null)
+            return false;
+
+        bool hasName = !string.IsNullOrWhiteSpace(item.itemName);
+        bool hasDescription = !string.IsNullOrWhiteSpace(item.description);
+        bool hasLevel = item.requiredLevel > 0;
+        bool hasValue = item.value > 0;
+        bool hasStats =
+            item.statBonus != null &&
+            (item.statBonus.hp != 0 ||
+             item.statBonus.atk != 0 ||
+             item.statBonus.def != 0 ||
+             item.statBonus.ap != 0 ||
+             Mathf.Abs(item.statBonus.crit) > 0.001f);
+
+        return hasName || hasDescription || hasLevel || hasValue || hasStats;
     }
 }

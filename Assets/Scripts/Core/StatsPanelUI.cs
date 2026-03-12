@@ -158,6 +158,17 @@ public class StatsPanelUI : MonoBehaviour
         if (targetEntity == null || targetStats == null)
             return;
 
+        StatBlock baseStats = targetStats.BaseStats;
+        StatBlock levelBonus = targetStats.LevelBonus;
+        StatBlock pointBonus = targetStats.PointBonus;
+        StatBlock itemBonus = targetStats.ItemBonus;
+
+        int finalHP = targetEntity.maxHP;
+        int finalATK = targetEntity.attackDamage;
+        int finalDEF = targetEntity.defense;
+        int finalAP = targetEntity.actionPoints;
+        float finalCRIT = targetEntity.critChance;
+
         if (nameText != null)
             nameText.text = targetEntity.name;
 
@@ -171,19 +182,39 @@ public class StatsPanelUI : MonoBehaviour
             pointsText.text = $"Points: {targetEntity.UnspentStatPoints}";
 
         if (hpValueText != null)
-            hpValueText.text = $"HP: {targetEntity.CurrentHP} / {targetEntity.maxHP}";
+        {
+            hpValueText.text =
+                $"HP: {targetEntity.CurrentHP} / {finalHP}\n" +
+                $"B{baseStats.hp} + L{levelBonus.hp} + P{pointBonus.hp} + I{itemBonus.hp}";
+        }
 
         if (atkValueText != null)
-            atkValueText.text = $"ATK: {targetEntity.attackDamage}";
+        {
+            atkValueText.text =
+                $"ATK: {finalATK}\n" +
+                $"B{baseStats.atk} + L{levelBonus.atk} + P{pointBonus.atk} + I{itemBonus.atk}";
+        }
 
         if (defValueText != null)
-            defValueText.text = $"DEF: {targetEntity.defense}";
+        {
+            defValueText.text =
+                $"DEF: {finalDEF}\n" +
+                $"B{baseStats.def} + L{levelBonus.def} + P{pointBonus.def} + I{itemBonus.def}";
+        }
 
         if (apValueText != null)
-            apValueText.text = $"AP: {targetEntity.actionPoints}";
+        {
+            apValueText.text =
+                $"AP: {finalAP}\n" +
+                $"B{baseStats.ap} + L{levelBonus.ap} + P{pointBonus.ap} + I{itemBonus.ap}";
+        }
 
         if (critValueText != null)
-            critValueText.text = $"CRIT: {targetEntity.critChance:0.#}%";
+        {
+            critValueText.text =
+                $"CRIT: {finalCRIT:0.#}%\n" +
+                $"B{baseStats.crit:0.#} + L{levelBonus.crit:0.#} + P{pointBonus.crit:0.#} + I{itemBonus.crit:0.#}";
+        }
 
         bool canSpend = targetEntity.UnspentStatPoints > 0;
 
