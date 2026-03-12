@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 393aa99d61971b949a6339e3e3e55ced, type: 3}
   m_Name: Ring_test
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
-  itemName: New Item
+  itemName: ring test
   description: 
-  slotType: 0
+  slotType: 2
   rarity: 0
   requiredLevel: 1
   value: 10
@@ -23,4 +23,4 @@ MonoBehaviour:
     atk: 0
     def: 0
     ap: 0
-    crit: 0
+    crit: 5

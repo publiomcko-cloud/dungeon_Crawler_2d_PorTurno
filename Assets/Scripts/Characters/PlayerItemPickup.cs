@@ -1,83 +1,55 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerItemPickup : MonoBehaviour
 {
     [SerializeField] private Team pickerTeam = Team.Player;
-    [SerializeField] private float pickupRadius = 0.25f;
-
-    private readonly Dictionary<Entity, Vector2Int> lastKnownCells = new Dictionary<Entity, Vector2Int>();
+    [SerializeField] private float detectionRadius = 0.25f;
+    [SerializeField] private bool autoOpenLootWindowOnEnter = false;
 
     private void Update()
     {
-        if (GridManager.Instance == null)
+        if (!autoOpenLootWindowOnEnter)
             return;
 
-        List<Entity> pickers = GridManager.Instance.GetEntitiesByTeam(pickerTeam);
+        if (GridManager.Instance == null || LootWindowUI.Instance == null)
+            return;
 
-        for (int i = 0; i < pickers.Count; i++)
+        Entity picker = FindFirstAlivePicker();
+        if (picker == null)
+            return;
+
+        if (CellHasGroundItems(picker.GridPosition))
         {
-            Entity picker = pickers[i];
-
-            if (picker == null || picker.IsDead)
-                continue;
-
-            Vector2Int currentCell = picker.GridPosition;
-
-            if (!lastKnownCells.ContainsKey(picker))
-            {
-                lastKnownCells[picker] = currentCell;
-                continue;
-            }
-
-            if (lastKnownCells[picker] != currentCell)
-            {
-                lastKnownCells[picker] = currentCell;
-                TryPickupAtEntityCell(picker);
-            }
+            PlayerInventory inventory = picker.GetComponent<PlayerInventory>();
+            if (inventory != null && !LootWindowUI.Instance.IsOpen)
+                LootWindowUI.Instance.OpenForCell(picker, inventory, picker.GridPosition);
         }
-
-        CleanupDeadEntities();
     }
 
-    private void TryPickupAtEntityCell(Entity picker)
+    private Entity FindFirstAlivePicker()
     {
-        Vector2Int cell = picker.GridPosition;
+        Entity[] entities = FindObjectsByType<Entity>(FindObjectsSortMode.None);
+
+        for (int i = 0; i < entities.Length; i++)
+        {
+            if (entities[i] != null && !entities[i].IsDead && entities[i].team == pickerTeam)
+                return entities[i];
+        }
+
+        return null;
+    }
+
+    private bool CellHasGroundItems(Vector2Int cell)
+    {
         Vector3 center = GridManager.Instance.GetCellCenterWorld(cell);
-
-        Collider2D[] hits = Physics2D.OverlapCircleAll(center, pickupRadius);
-
-        if (hits == null || hits.Length == 0)
-            return;
+        Collider2D[] hits = Physics2D.OverlapCircleAll(center, detectionRadius);
 
         for (int i = 0; i < hits.Length; i++)
         {
-            GroundItem item = hits[i].GetComponent<GroundItem>();
-
-            if (item == null)
-                continue;
-
-            bool equipped = item.TryAutoEquip(picker);
-
-            if (equipped)
-            {
-                Debug.Log($"[PlayerItemPickup] {picker.name} picked and equipped item at cell {cell}.", picker);
-                break;
-            }
-        }
-    }
-
-    private void CleanupDeadEntities()
-    {
-        List<Entity> toRemove = new List<Entity>();
-
-        foreach (var pair in lastKnownCells)
-        {
-            if (pair.Key == null || pair.Key.IsDead)
-                toRemove.Add(pair.Key);
+            if (hits[i].GetComponent<GroundItem>() != null)
+                return true;
         }
 
-        for (int i = 0; i < toRemove.Count; i++)
-            lastKnownCells.Remove(toRemove[i]);
+        return false;
     }
 }

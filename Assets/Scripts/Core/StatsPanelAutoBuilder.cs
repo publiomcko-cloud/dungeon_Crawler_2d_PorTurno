@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.TextCore.Text;
 using UnityEngine.UI;
 
 public class StatsPanelAutoBuilder : MonoBehaviour
@@ -157,7 +158,7 @@ public class StatsPanelAutoBuilder : MonoBehaviour
         text.fontSize = fontSize;
         text.color = Color.white;
         text.alignment = TextAlignmentOptions.Left;
-        text.enableWordWrapping = false;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
 
         return text;
     }
@@ -195,7 +196,7 @@ public class StatsPanelAutoBuilder : MonoBehaviour
         tmp.fontSize = 18;
         tmp.color = Color.white;
         tmp.alignment = TextAlignmentOptions.Center;
-        tmp.enableWordWrapping = false;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
 
         return button;
     }

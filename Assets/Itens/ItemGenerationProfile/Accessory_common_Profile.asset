@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1fe5716595ba6a14a80b9eff105ed057, type: 3}
   m_Name: Accessory_common_Profile
   m_EditorClassIdentifier: Assembly-CSharp::ItemGenerationProfile
-  generatedNamePrefix: Generated
-  slotType: 0
+  generatedNamePrefix: Ring
+  slotType: 2
   rarity: 0
   requiredLevel: 1
-  value: 10
-  hpRange: {x: 0, y: 0}
-  atkRange: {x: 0, y: 0}
-  defRange: {x: 0, y: 0}
-  apRange: {x: 0, y: 0}
-  critRange: {x: 0, y: 0}
+  value: 15
+  hpRange: {x: 0, y: 2}
+  atkRange: {x: 0, y: 2}
+  defRange: {x: 0, y: 1}
+  apRange: {x: 0, y: 1}
+  critRange: {x: 1, y: 5}
