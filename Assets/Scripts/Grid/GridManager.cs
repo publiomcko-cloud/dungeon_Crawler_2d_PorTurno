@@ -209,28 +209,45 @@ public class GridManager : MonoBehaviour
                 attacker.PlayAttackLunge(attackDirection);
         }
 
-        int totalDamage = attackers.Sum(a => a.attackDamage);
-        DistributeDamage(defenders, totalDamage);
+        int totalAtk = 0;
+        foreach (Entity attacker in attackers)
+        {
+            CharacterStats attackerStats = attacker.GetStatsComponent();
+            if (attackerStats != null)
+                totalAtk += Mathf.Max(0, attackerStats.Atk);
+        }
+
+        if (totalAtk <= 0)
+            totalAtk = attackers.Count;
+
+        DistributeDamage(defenders, totalAtk);
     }
 
-    private void DistributeDamage(List<Entity> defenders, int totalDamage)
+    private void DistributeDamage(List<Entity> defenders, int totalIncomingDamage)
     {
         defenders = defenders.Where(e => e != null && !e.IsDead).ToList();
-        if (defenders.Count == 0 || totalDamage <= 0) return;
+        if (defenders.Count == 0 || totalIncomingDamage <= 0) return;
 
         int livingCount = defenders.Count;
-        int baseDamage = totalDamage / livingCount;
-        int remainder = totalDamage % livingCount;
+        int baseShare = totalIncomingDamage / livingCount;
+        int remainder = totalIncomingDamage % livingCount;
 
         for (int i = 0; i < defenders.Count; i++)
         {
-            if (defenders[i] == null || defenders[i].IsDead) continue;
+            if (defenders[i] == null || defenders[i].IsDead)
+                continue;
 
-            int damage = baseDamage;
-            if (i < remainder) damage += 1;
+            int incomingDamage = baseShare;
+            if (i < remainder)
+                incomingDamage += 1;
 
-            if (damage > 0)
-                defenders[i].ReceiveDamage(damage);
+            CharacterStats defenderStats = defenders[i].GetStatsComponent();
+            int finalDamage = incomingDamage;
+
+            if (defenderStats != null)
+                finalDamage = defenderStats.CalculateIncomingDamage(incomingDamage);
+
+            defenders[i].ReceiveDamage(finalDamage);
         }
     }
 
