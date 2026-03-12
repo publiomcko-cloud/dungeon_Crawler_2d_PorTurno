@@ -7,6 +7,9 @@ public class ItemData : ScriptableObject
     public string itemName = "New Item";
     [TextArea] public string description = "";
 
+    [Header("Visual")]
+    public Sprite icon;
+
     [Header("Classification")]
     public EquipmentSlotType slotType = EquipmentSlotType.Weapon;
     public ItemRarity rarity = ItemRarity.Common;
@@ -18,12 +21,5 @@ public class ItemData : ScriptableObject
     public int value = 10;
 
     [Header("Stat Bonus")]
-    public StatBlock statBonus = new StatBlock
-    {
-        hp = 0,
-        atk = 0,
-        def = 0,
-        ap = 0,
-        crit = 0f
-    };
+    public StatBlock statBonus = new StatBlock();
 }

@@ -6,6 +6,7 @@ public class GeneratedItemInstance
 {
     public string itemName;
     public string description;
+    public Sprite icon;
     public EquipmentSlotType slotType;
     public ItemRarity rarity;
     public int requiredLevel;
@@ -18,11 +19,12 @@ public class GeneratedItemInstance
         {
             itemName = itemName,
             description = description,
+            icon = icon,
             slotType = slotType,
             rarity = rarity,
             requiredLevel = requiredLevel,
             value = value,
-            statBonus = statBonus != null ? statBonus.Clone() : new StatBlock { hp = 0, atk = 0, def = 0, ap = 0, crit = 0f }
+            statBonus = statBonus != null ? statBonus.Clone() : new StatBlock()
         };
     }
 }

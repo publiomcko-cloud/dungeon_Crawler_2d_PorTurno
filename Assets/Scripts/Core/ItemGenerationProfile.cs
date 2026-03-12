@@ -6,6 +6,9 @@ public class ItemGenerationProfile : ScriptableObject
     [Header("Identity")]
     public string generatedNamePrefix = "Generated";
 
+    [Header("Visual")]
+    public Sprite icon;
+
     [Header("Base")]
     public EquipmentSlotType slotType = EquipmentSlotType.Weapon;
     public ItemRarity rarity = ItemRarity.Common;

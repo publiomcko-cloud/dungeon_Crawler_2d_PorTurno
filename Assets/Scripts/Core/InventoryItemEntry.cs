@@ -42,6 +42,20 @@ public class InventoryItemEntry
         }
     }
 
+    public Sprite Icon
+    {
+        get
+        {
+            if (staticItem != null)
+                return staticItem.icon;
+
+            if (generatedItem != null)
+                return generatedItem.icon;
+
+            return null;
+        }
+    }
+
     public int RequiredLevel
     {
         get

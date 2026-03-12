@@ -13,6 +13,7 @@ public static class ItemGenerator
         {
             itemName = BuildName(profile, rolledStats),
             description = BuildDescription(profile, rolledStats),
+            icon = profile.icon,
             slotType = profile.slotType,
             rarity = profile.rarity,
             requiredLevel = Mathf.Max(1, profile.requiredLevel),
@@ -31,7 +32,7 @@ public static class ItemGenerator
 
     private static string BuildDescription(ItemGenerationProfile profile, StatBlock stats)
     {
-        return $"{profile.rarity} {profile.slotType} | HP {stats.hp} | ATK {stats.atk} | DEF {stats.def} | AP {stats.ap} | CRIT {stats.crit:0.#}";
+        return $"{profile.rarity} {profile.slotType}";
     }
 
     private static string GetPrimaryStatSuffix(StatBlock stats)

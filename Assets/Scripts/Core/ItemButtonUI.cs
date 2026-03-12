@@ -7,13 +7,13 @@ using UnityEngine.UI;
 [RequireComponent(typeof(Button))]
 [RequireComponent(typeof(Image))]
 [RequireComponent(typeof(LayoutElement))]
-public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
+public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerEnterHandler, IPointerExitHandler
 {
     [Header("References")]
     [SerializeField] private Button button;
     [SerializeField] private Image backgroundImage;
     [SerializeField] private LayoutElement layoutElement;
-    [SerializeField] private TMP_Text label;
+    [SerializeField] private Image iconImage;
     [SerializeField] private CanvasGroup canvasGroup;
 
     [Header("Style")]
@@ -23,13 +23,14 @@ public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandl
     [SerializeField] private float minHeight = 92f;
     [SerializeField] private Color normalColor = new Color(0.22f, 0.22f, 0.22f, 1f);
     [SerializeField] private Color emptyColor = new Color(0.14f, 0.14f, 0.14f, 1f);
-    [SerializeField] private Color disabledTextColor = new Color(0.65f, 0.65f, 0.65f, 1f);
-    [SerializeField] private Color enabledTextColor = Color.white;
+    [SerializeField] private Color enabledIconColor = Color.white;
+    [SerializeField] private Color emptyIconColor = new Color(1f, 1f, 1f, 0f);
 
     private Action normalClickAction;
     private Action shiftClickAction;
     private Action beginDragAction;
     private Action endDragAction;
+    private InventoryItemEntry tooltipEntry;
 
     private bool interactable = true;
     private Transform originalParent;
@@ -46,14 +47,13 @@ public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandl
         if (layoutElement == null)
             layoutElement = GetComponent<LayoutElement>();
 
-        if (label == null)
-            label = GetComponentInChildren<TMP_Text>(true);
-
         if (canvasGroup == null)
             canvasGroup = GetComponent<CanvasGroup>();
 
         if (canvasGroup == null)
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
+
+        EnsureIcon();
 
         if (layoutElement != null)
         {
@@ -71,37 +71,31 @@ public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandl
             button.transition = Selectable.Transition.ColorTint;
         }
 
-        if (label != null)
-        {
-            label.alignment = TextAlignmentOptions.Center;
-            label.textWrappingMode = TextWrappingModes.Normal;
-            label.fontSize = 16;
-            label.margin = new Vector4(6f, 6f, 6f, 6f);
-        }
-
-        ApplyInteractableVisual(true, false);
+        ApplyInteractableVisual(true, true);
     }
 
     public void Setup(
-        string text,
+        InventoryItemEntry entry,
         Action onNormalClick,
         Action onShiftClick = null,
         Action onBeginDrag = null,
         Action onEndDrag = null)
     {
-        if (label == null)
-            label = GetComponentInChildren<TMP_Text>(true);
-
+        tooltipEntry = entry;
         normalClickAction = onNormalClick;
         shiftClickAction = onShiftClick;
         beginDragAction = onBeginDrag;
         endDragAction = onEndDrag;
 
-        if (label != null)
-            label.text = text;
-
-        bool isEmpty = string.IsNullOrWhiteSpace(text) || text.Contains("Empty");
+        bool isEmpty = entry == null || entry.IsEmpty;
         bool hasAnyAction = onNormalClick != null || onShiftClick != null || onBeginDrag != null;
+
+        if (iconImage != null)
+        {
+            iconImage.sprite = isEmpty ? null : entry.Icon;
+            iconImage.color = isEmpty || entry.Icon == null ? emptyIconColor : enabledIconColor;
+            iconImage.enabled = !isEmpty && entry.Icon != null;
+        }
 
         ApplyInteractableVisual(hasAnyAction, isEmpty);
     }
@@ -158,6 +152,44 @@ public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandl
         endDragAction?.Invoke();
     }
 
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (tooltipEntry != null && !tooltipEntry.IsEmpty && ItemTooltipUI.Instance != null)
+            ItemTooltipUI.Instance.Show(tooltipEntry);
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if (ItemTooltipUI.Instance != null)
+            ItemTooltipUI.Instance.Hide();
+    }
+
+    private void EnsureIcon()
+    {
+        if (iconImage != null)
+            return;
+
+        Transform existing = transform.Find("Icon");
+        if (existing != null)
+        {
+            iconImage = existing.GetComponent<Image>();
+            return;
+        }
+
+        GameObject go = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(transform, false);
+
+        RectTransform rect = go.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = new Vector2(8f, 8f);
+        rect.offsetMax = new Vector2(-8f, -8f);
+
+        iconImage = go.GetComponent<Image>();
+        iconImage.preserveAspect = true;
+        iconImage.raycastTarget = false;
+    }
+
     private void ApplyInteractableVisual(bool canClick, bool isEmpty)
     {
         interactable = canClick;
@@ -167,8 +199,5 @@ public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandl
 
         if (backgroundImage != null)
             backgroundImage.color = isEmpty ? emptyColor : normalColor;
-
-        if (label != null)
-            label.color = canClick ? enabledTextColor : disabledTextColor;
     }
 }

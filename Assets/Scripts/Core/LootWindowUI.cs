@@ -81,9 +81,7 @@ public class LootWindowUI : MonoBehaviour
             return;
 
         if (currentEntity == null || currentInventory == null || currentEntity.IsDead)
-        {
             CloseWindow();
-        }
     }
 
     public void ConfigureReferences(
@@ -240,7 +238,7 @@ public class LootWindowUI : MonoBehaviour
             titleText.text = $"Inventory - {currentEntity.name}";
 
         if (hintText != null)
-            hintText.text = "E abre/fecha | Esc fecha | Click chão -> mochila | Shift+Click chão -> equipar | Click mochila -> equipar | Click equipado -> mochila";
+            hintText.text = "Only icon in slot | Mouse hover shows tooltip | Click chão -> mochila | Shift+Click chão -> equipar";
 
         BuildEquippedSection();
         BuildInventorySection();
@@ -249,31 +247,26 @@ public class LootWindowUI : MonoBehaviour
 
     private void BuildEquippedSection()
     {
-        CreateEquippedButton(EquipmentSlotType.Weapon, "Weapon");
-        CreateEquippedButton(EquipmentSlotType.Armor, "Armor");
-        CreateEquippedButton(EquipmentSlotType.Accessory, "Accessory");
+        CreateEquippedButton(EquipmentSlotType.Weapon);
+        CreateEquippedButton(EquipmentSlotType.Armor);
+        CreateEquippedButton(EquipmentSlotType.Accessory);
     }
 
-    private void CreateEquippedButton(EquipmentSlotType slotType, string slotLabel)
+    private void CreateEquippedButton(EquipmentSlotType slotType)
     {
         InventoryItemEntry equipped = currentInventory.GetEquippedEntry(slotType);
-
-        string text = equipped == null || equipped.IsEmpty
-            ? $"{slotLabel}: Empty"
-            : $"{slotLabel}: {equipped.ItemName}";
 
         ItemButtonUI button = Instantiate(itemButtonPrefab, equippedContentRoot);
 
         button.Setup(
-            text,
+            equipped,
             equipped == null || equipped.IsEmpty
                 ? null
                 : () =>
                 {
                     currentInventory.UnequipToInventory(slotType);
                     RefreshUI();
-                },
-            null
+                }
         );
 
         spawnedUI.Add(button.gameObject);
@@ -288,20 +281,16 @@ public class LootWindowUI : MonoBehaviour
             int index = i;
             InventoryItemEntry entry = items[index];
 
-            string text = entry == null || entry.IsEmpty
-                ? $"Slot {index}: Empty"
-                : $"Slot {index}: {entry.ItemName}";
-
             ItemButtonUI button = Instantiate(itemButtonPrefab, inventoryContentRoot);
 
             if (entry == null || entry.IsEmpty)
             {
-                button.Setup(text, null, null);
+                button.Setup(null, null, null);
             }
             else
             {
                 button.Setup(
-                    text,
+                    entry,
                     () =>
                     {
                         currentInventory.TryEquipFromInventory(index);
@@ -323,26 +312,25 @@ public class LootWindowUI : MonoBehaviour
     {
         List<GroundItem> items = GetGroundItemsInCell(currentEntity.GridPosition);
 
-        if (items.Count == 0)
-        {
-            ItemButtonUI emptyButton = Instantiate(itemButtonPrefab, groundLootContentRoot);
-            emptyButton.Setup("Ground: Empty", null, null);
-            spawnedUI.Add(emptyButton.gameObject);
-            return;
-        }
+        int maxGroundSlots = 20;
 
-        for (int i = 0; i < items.Count; i++)
+        for (int i = 0; i < maxGroundSlots; i++)
         {
-            GroundItem groundItem = items[i];
-            if (groundItem == null)
+            if (i >= items.Count || items[i] == null)
+            {
+                ItemButtonUI emptyButton = Instantiate(itemButtonPrefab, groundLootContentRoot);
+                emptyButton.Setup(null, null, null);
+                spawnedUI.Add(emptyButton.gameObject);
                 continue;
+            }
 
-            string text = $"Ground: {groundItem.GetDisplayName()}";
+            GroundItem groundItem = items[i];
+            InventoryItemEntry entry = groundItem.ToInventoryEntry();
 
             ItemButtonUI button = Instantiate(itemButtonPrefab, groundLootContentRoot);
 
             button.Setup(
-                text,
+                entry,
                 () =>
                 {
                     bool moved = groundItem.TrySendToInventory(currentInventory);
