@@ -17,8 +17,10 @@ public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandl
     [SerializeField] private CanvasGroup canvasGroup;
 
     [Header("Style")]
-    [SerializeField] private float preferredHeight = 42f;
-    [SerializeField] private float minHeight = 42f;
+    [SerializeField] private float preferredWidth = 92f;
+    [SerializeField] private float preferredHeight = 92f;
+    [SerializeField] private float minWidth = 92f;
+    [SerializeField] private float minHeight = 92f;
     [SerializeField] private Color normalColor = new Color(0.22f, 0.22f, 0.22f, 1f);
     [SerializeField] private Color emptyColor = new Color(0.14f, 0.14f, 0.14f, 1f);
     [SerializeField] private Color disabledTextColor = new Color(0.65f, 0.65f, 0.65f, 1f);
@@ -55,16 +57,26 @@ public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandl
 
         if (layoutElement != null)
         {
+            layoutElement.minWidth = minWidth;
+            layoutElement.preferredWidth = preferredWidth;
             layoutElement.minHeight = minHeight;
             layoutElement.preferredHeight = preferredHeight;
             layoutElement.flexibleHeight = 0f;
-            layoutElement.flexibleWidth = 1f;
+            layoutElement.flexibleWidth = 0f;
         }
 
         if (button != null)
         {
             button.onClick.RemoveAllListeners();
             button.transition = Selectable.Transition.ColorTint;
+        }
+
+        if (label != null)
+        {
+            label.alignment = TextAlignmentOptions.Center;
+            label.textWrappingMode = TextWrappingModes.Normal;
+            label.fontSize = 16;
+            label.margin = new Vector4(6f, 6f, 6f, 6f);
         }
 
         ApplyInteractableVisual(true, false);
