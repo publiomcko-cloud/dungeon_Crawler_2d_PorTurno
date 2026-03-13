@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 6447824926646468255}
   - component: {fileID: 1039542179084757021}
   - component: {fileID: 3039133925998551272}
+  - component: {fileID: -5709151814346295151}
   m_Layer: 5
   m_Name: ItemRowButton 1
   m_TagString: Untagged
@@ -159,7 +160,7 @@ MonoBehaviour:
   button: {fileID: 0}
   backgroundImage: {fileID: 0}
   layoutElement: {fileID: 0}
-  label: {fileID: 0}
+  iconImage: {fileID: 0}
   canvasGroup: {fileID: 0}
   preferredWidth: 92
   preferredHeight: 92
@@ -167,8 +168,9 @@ MonoBehaviour:
   minHeight: 92
   normalColor: {r: 0.22, g: 0.22, b: 0.22, a: 1}
   emptyColor: {r: 0.14, g: 0.14, b: 0.14, a: 1}
-  disabledTextColor: {r: 0.65, g: 0.65, b: 0.65, a: 1}
-  enabledTextColor: {r: 1, g: 1, b: 1, a: 1}
+  enabledIconColor: {r: 1, g: 1, b: 1, a: 1}
+  emptyIconColor: {r: 1, g: 1, b: 1, a: 0}
+  dragAlpha: 0.8
 --- !u!114 &3039133925998551272
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -189,6 +191,18 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
+--- !u!225 &-5709151814346295151
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1385065507397254606}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &4963383982661452526
 GameObject:
   m_ObjectHideFlags: 0

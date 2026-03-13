@@ -238,7 +238,7 @@ public class LootWindowUI : MonoBehaviour
             titleText.text = $"Inventory - {currentEntity.name}";
 
         if (hintText != null)
-            hintText.text = "Only icon in slot | Mouse hover shows tooltip | Click chão -> mochila | Shift+Click chão -> equipar";
+            hintText.text = "Drag: mochila↔mochila | mochila→equipado | equipado→mochila | chão→mochila/equipado | Click antigo continua";
 
         BuildEquippedSection();
         BuildInventorySection();
@@ -257,6 +257,7 @@ public class LootWindowUI : MonoBehaviour
         InventoryItemEntry equipped = currentInventory.GetEquippedEntry(slotType);
 
         ItemButtonUI button = Instantiate(itemButtonPrefab, equippedContentRoot);
+        button.ConfigureAsEquippedSlot(slotType);
 
         button.Setup(
             equipped,
@@ -264,9 +265,16 @@ public class LootWindowUI : MonoBehaviour
                 ? null
                 : () =>
                 {
-                    currentInventory.UnequipToInventory(slotType);
-                    RefreshUI();
-                }
+                    bool moved = currentInventory.UnequipToInventory(slotType);
+                    if (moved)
+                        RefreshUI();
+                },
+            null,
+            equipped != null && !equipped.IsEmpty,
+            (sourceButton) =>
+            {
+                HandleDropOnEquippedSlot(slotType, sourceButton);
+            }
         );
 
         spawnedUI.Add(button.gameObject);
@@ -282,27 +290,34 @@ public class LootWindowUI : MonoBehaviour
             InventoryItemEntry entry = items[index];
 
             ItemButtonUI button = Instantiate(itemButtonPrefab, inventoryContentRoot);
+            button.ConfigureAsInventorySlot(index);
 
-            if (entry == null || entry.IsEmpty)
-            {
-                button.Setup(null, null, null);
-            }
-            else
-            {
-                button.Setup(
-                    entry,
-                    () =>
+            bool hasItem = entry != null && !entry.IsEmpty;
+
+            button.Setup(
+                hasItem ? entry : null,
+                hasItem
+                    ? () =>
                     {
-                        currentInventory.TryEquipFromInventory(index);
-                        RefreshUI();
-                    },
-                    () =>
-                    {
-                        currentInventory.TryEquipFromInventory(index);
-                        RefreshUI();
+                        bool equipped = currentInventory.TryEquipFromInventory(index);
+                        if (equipped)
+                            RefreshUI();
                     }
-                );
-            }
+                    : null,
+                hasItem
+                    ? () =>
+                    {
+                        bool equipped = currentInventory.TryEquipFromInventory(index);
+                        if (equipped)
+                            RefreshUI();
+                    }
+                    : null,
+                hasItem,
+                (sourceButton) =>
+                {
+                    HandleDropOnInventorySlot(index, sourceButton);
+                }
+            );
 
             spawnedUI.Add(button.gameObject);
         }
@@ -311,23 +326,24 @@ public class LootWindowUI : MonoBehaviour
     private void BuildGroundLootSection()
     {
         List<GroundItem> items = GetGroundItemsInCell(currentEntity.GridPosition);
-
         int maxGroundSlots = 20;
 
         for (int i = 0; i < maxGroundSlots; i++)
         {
+            ItemButtonUI button = Instantiate(itemButtonPrefab, groundLootContentRoot);
+
             if (i >= items.Count || items[i] == null)
             {
-                ItemButtonUI emptyButton = Instantiate(itemButtonPrefab, groundLootContentRoot);
-                emptyButton.Setup(null, null, null);
-                spawnedUI.Add(emptyButton.gameObject);
+                button.ClearContext();
+                button.Setup(null, null, null, false, null);
+                spawnedUI.Add(button.gameObject);
                 continue;
             }
 
             GroundItem groundItem = items[i];
             InventoryItemEntry entry = groundItem.ToInventoryEntry();
 
-            ItemButtonUI button = Instantiate(itemButtonPrefab, groundLootContentRoot);
+            button.ConfigureAsGroundSlot(groundItem);
 
             button.Setup(
                 entry,
@@ -342,11 +358,63 @@ public class LootWindowUI : MonoBehaviour
                     bool equipped = groundItem.TryEquipDirect(currentEntity, currentInventory);
                     if (equipped)
                         RefreshUI();
-                }
+                },
+                true,
+                null
             );
 
             spawnedUI.Add(button.gameObject);
         }
+    }
+
+    private void HandleDropOnInventorySlot(int targetIndex, ItemButtonUI sourceButton)
+    {
+        if (currentInventory == null || sourceButton == null)
+            return;
+
+        bool changed = false;
+
+        switch (sourceButton.SlotKind)
+        {
+            case ItemButtonSlotKind.Inventory:
+                changed = currentInventory.MoveItem(sourceButton.InventoryIndex, targetIndex);
+                break;
+
+            case ItemButtonSlotKind.Equipped:
+                changed = currentInventory.UnequipToInventorySlot(sourceButton.EquippedSlotType, targetIndex);
+                break;
+
+            case ItemButtonSlotKind.Ground:
+                if (sourceButton.GroundItemRef != null)
+                    changed = sourceButton.GroundItemRef.TrySendToInventorySlot(currentInventory, targetIndex);
+                break;
+        }
+
+        if (changed)
+            RefreshUI();
+    }
+
+    private void HandleDropOnEquippedSlot(EquipmentSlotType targetSlotType, ItemButtonUI sourceButton)
+    {
+        if (currentInventory == null || currentEntity == null || sourceButton == null)
+            return;
+
+        bool changed = false;
+
+        switch (sourceButton.SlotKind)
+        {
+            case ItemButtonSlotKind.Inventory:
+                changed = currentInventory.TryEquipFromInventoryToSlot(sourceButton.InventoryIndex, targetSlotType);
+                break;
+
+            case ItemButtonSlotKind.Ground:
+                if (sourceButton.GroundItemRef != null)
+                    changed = sourceButton.GroundItemRef.TryEquipDirectToSlot(currentEntity, currentInventory, targetSlotType);
+                break;
+        }
+
+        if (changed)
+            RefreshUI();
     }
 
     private List<GroundItem> GetGroundItemsInCell(Vector2Int cell)

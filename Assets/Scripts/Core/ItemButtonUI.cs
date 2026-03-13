@@ -1,13 +1,23 @@
 using System;
-using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-[RequireComponent(typeof(Button))]
-[RequireComponent(typeof(Image))]
-[RequireComponent(typeof(LayoutElement))]
-public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerEnterHandler, IPointerExitHandler
+public enum ItemButtonSlotKind
+{
+    None,
+    Inventory,
+    Equipped,
+    Ground
+}
+
+public class ItemButtonUI : MonoBehaviour,
+    IPointerClickHandler,
+    IBeginDragHandler,
+    IDragHandler,
+    IEndDragHandler,
+    IPointerEnterHandler,
+    IPointerExitHandler
 {
     [Header("References")]
     [SerializeField] private Button button;
@@ -25,16 +35,30 @@ public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandl
     [SerializeField] private Color emptyColor = new Color(0.14f, 0.14f, 0.14f, 1f);
     [SerializeField] private Color enabledIconColor = Color.white;
     [SerializeField] private Color emptyIconColor = new Color(1f, 1f, 1f, 0f);
+    [SerializeField] private float dragAlpha = 0.8f;
 
     private Action normalClickAction;
     private Action shiftClickAction;
-    private Action beginDragAction;
-    private Action endDragAction;
+    private Action<ItemButtonUI> receiveDropAction;
     private InventoryItemEntry tooltipEntry;
 
-    private bool interactable = true;
+    private bool canClick;
+    private bool canDrag;
+
     private Transform originalParent;
     private int originalSiblingIndex;
+
+    private RectTransform rectTransform;
+    private Canvas rootCanvas;
+
+    public ItemButtonSlotKind SlotKind { get; private set; } = ItemButtonSlotKind.None;
+    public int InventoryIndex { get; private set; } = -1;
+    public EquipmentSlotType EquippedSlotType { get; private set; } = EquipmentSlotType.Weapon;
+    public GroundItem GroundItemRef { get; private set; }
+
+    public bool HasItem => tooltipEntry != null && !tooltipEntry.IsEmpty;
+    public InventoryItemEntry Entry => tooltipEntry;
+    public bool CanReceiveDrop => receiveDropAction != null;
 
     private void Awake()
     {
@@ -52,6 +76,9 @@ public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandl
 
         if (canvasGroup == null)
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
+
+        rectTransform = GetComponent<RectTransform>();
+        rootCanvas = GetComponentInParent<Canvas>();
 
         EnsureIcon();
 
@@ -71,24 +98,25 @@ public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandl
             button.transition = Selectable.Transition.ColorTint;
         }
 
-        ApplyInteractableVisual(true, true);
+        ApplyVisualState(false, false, true);
     }
 
     public void Setup(
         InventoryItemEntry entry,
         Action onNormalClick,
         Action onShiftClick = null,
-        Action onBeginDrag = null,
-        Action onEndDrag = null)
+        bool draggable = false,
+        Action<ItemButtonUI> onReceiveDrop = null)
     {
         tooltipEntry = entry;
         normalClickAction = onNormalClick;
         shiftClickAction = onShiftClick;
-        beginDragAction = onBeginDrag;
-        endDragAction = onEndDrag;
+        receiveDropAction = onReceiveDrop;
 
         bool isEmpty = entry == null || entry.IsEmpty;
-        bool hasAnyAction = onNormalClick != null || onShiftClick != null || onBeginDrag != null;
+
+        canClick = onNormalClick != null || onShiftClick != null;
+        canDrag = draggable && !isEmpty;
 
         if (iconImage != null)
         {
@@ -97,12 +125,49 @@ public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandl
             iconImage.enabled = !isEmpty && entry.Icon != null;
         }
 
-        ApplyInteractableVisual(hasAnyAction, isEmpty);
+        ApplyVisualState(canClick, canDrag, isEmpty);
+    }
+
+    public void ConfigureAsInventorySlot(int inventoryIndex)
+    {
+        SlotKind = ItemButtonSlotKind.Inventory;
+        InventoryIndex = inventoryIndex;
+        GroundItemRef = null;
+    }
+
+    public void ConfigureAsEquippedSlot(EquipmentSlotType slotType)
+    {
+        SlotKind = ItemButtonSlotKind.Equipped;
+        EquippedSlotType = slotType;
+        InventoryIndex = -1;
+        GroundItemRef = null;
+    }
+
+    public void ConfigureAsGroundSlot(GroundItem groundItem)
+    {
+        SlotKind = ItemButtonSlotKind.Ground;
+        GroundItemRef = groundItem;
+        InventoryIndex = -1;
+    }
+
+    public void ClearContext()
+    {
+        SlotKind = ItemButtonSlotKind.None;
+        InventoryIndex = -1;
+        GroundItemRef = null;
+    }
+
+    public void ReceiveDrop(ItemButtonUI sourceButton)
+    {
+        if (receiveDropAction == null || sourceButton == null)
+            return;
+
+        receiveDropAction.Invoke(sourceButton);
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (!interactable)
+        if (!canClick)
             return;
 
         bool shiftPressed = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
@@ -118,38 +183,61 @@ public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandl
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (!interactable || beginDragAction == null)
+        if (!canDrag || !HasItem)
             return;
+
+        if (ItemTooltipUI.Instance != null)
+            ItemTooltipUI.Instance.Hide();
 
         originalParent = transform.parent;
         originalSiblingIndex = transform.GetSiblingIndex();
 
+        if (rootCanvas == null)
+            rootCanvas = GetComponentInParent<Canvas>();
+
+        canvasGroup.alpha = dragAlpha;
         canvasGroup.blocksRaycasts = false;
-        beginDragAction.Invoke();
+
+        if (rootCanvas != null)
+        {
+            transform.SetParent(rootCanvas.transform, true);
+            transform.SetAsLastSibling();
+        }
     }
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (!interactable || beginDragAction == null)
+        if (!canDrag || !HasItem)
             return;
 
-        transform.position = eventData.position;
+        if (rectTransform != null)
+            rectTransform.position = eventData.position;
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (!interactable || beginDragAction == null)
+        if (!canDrag || !HasItem)
             return;
 
+        ItemButtonUI targetButton = null;
+
+        if (eventData.pointerCurrentRaycast.gameObject != null)
+            targetButton = eventData.pointerCurrentRaycast.gameObject.GetComponentInParent<ItemButtonUI>();
+
+        canvasGroup.alpha = 1f;
         canvasGroup.blocksRaycasts = true;
+
+        if (targetButton != null && targetButton != this && targetButton.CanReceiveDrop)
+            targetButton.ReceiveDrop(this);
+
+        if (this == null)
+            return;
 
         if (originalParent != null)
         {
-            transform.SetParent(originalParent);
+            transform.SetParent(originalParent, true);
             transform.SetSiblingIndex(originalSiblingIndex);
         }
-
-        endDragAction?.Invoke();
     }
 
     public void OnPointerEnter(PointerEventData eventData)
@@ -190,14 +278,15 @@ public class ItemButtonUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandl
         iconImage.raycastTarget = false;
     }
 
-    private void ApplyInteractableVisual(bool canClick, bool isEmpty)
+    private void ApplyVisualState(bool clickable, bool draggable, bool isEmpty)
     {
-        interactable = canClick;
-
         if (button != null)
             button.interactable = true;
 
         if (backgroundImage != null)
             backgroundImage.color = isEmpty ? emptyColor : normalColor;
+
+        canClick = clickable;
+        canDrag = draggable;
     }
 }

@@ -85,6 +85,23 @@ public class GroundItem : MonoBehaviour
         return true;
     }
 
+    public bool TrySendToInventorySlot(PlayerInventory inventory, int targetIndex)
+    {
+        if (consumed || inventory == null)
+            return false;
+
+        InventoryItemEntry entry = ToInventoryEntry();
+        if (entry == null)
+            return false;
+
+        bool added = inventory.AddEntryToIndex(entry, targetIndex);
+        if (!added)
+            return false;
+
+        Consume();
+        return true;
+    }
+
     public bool TryEquipDirect(Entity entity, PlayerInventory inventory)
     {
         if (consumed || entity == null || inventory == null)
@@ -95,6 +112,24 @@ public class GroundItem : MonoBehaviour
             return false;
 
         bool equipped = inventory.TryEquipEntryDirectly(entry);
+
+        if (!equipped)
+            return false;
+
+        Consume();
+        return true;
+    }
+
+    public bool TryEquipDirectToSlot(Entity entity, PlayerInventory inventory, EquipmentSlotType slotType)
+    {
+        if (consumed || entity == null || inventory == null)
+            return false;
+
+        InventoryItemEntry entry = ToInventoryEntry();
+        if (entry == null)
+            return false;
+
+        bool equipped = inventory.TryEquipEntryDirectlyToSlot(entry, slotType);
 
         if (!equipped)
             return false;

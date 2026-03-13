@@ -32,6 +32,15 @@ public class PlayerInventory : MonoBehaviour
         return items[index];
     }
 
+    public bool IsSlotEmpty(int index)
+    {
+        if (!IsValidIndex(index))
+            return false;
+
+        EnsureSize();
+        return items[index] == null || items[index].IsEmpty;
+    }
+
     public bool HasEmptySlot()
     {
         EnsureSize();
@@ -90,6 +99,25 @@ public class PlayerInventory : MonoBehaviour
         return true;
     }
 
+    public bool AddEntryToIndex(InventoryItemEntry entry, int index)
+    {
+        if (entry == null || entry.IsEmpty)
+            return false;
+
+        if (!IsValidIndex(index))
+            return false;
+
+        EnsureSize();
+
+        if (items[index] != null && !items[index].IsEmpty)
+            return false;
+
+        items[index] = entry.Clone();
+        NormalizeSlot(index);
+        OnInventoryChanged?.Invoke();
+        return true;
+    }
+
     public bool RemoveAt(int index)
     {
         if (!IsValidIndex(index))
@@ -112,6 +140,9 @@ public class PlayerInventory : MonoBehaviour
             return false;
 
         EnsureSize();
+
+        if (items[fromIndex] == null || items[fromIndex].IsEmpty)
+            return false;
 
         InventoryItemEntry from = items[fromIndex];
         InventoryItemEntry to = items[toIndex];
@@ -136,11 +167,7 @@ public class PlayerInventory : MonoBehaviour
         if (entry == null || entry.IsEmpty)
             return false;
 
-        if (entity == null)
-            entity = GetComponent<Entity>();
-
-        if (equipmentSlots == null)
-            equipmentSlots = GetComponent<EquipmentSlots>();
+        ResolveReferences();
 
         if (entity == null || equipmentSlots == null)
             return false;
@@ -189,10 +216,24 @@ public class PlayerInventory : MonoBehaviour
         return true;
     }
 
+    public bool TryEquipFromInventoryToSlot(int index, EquipmentSlotType targetSlotType)
+    {
+        if (!IsValidIndex(index))
+            return false;
+
+        InventoryItemEntry entry = items[index];
+        if (entry == null || entry.IsEmpty)
+            return false;
+
+        if (entry.SlotType != targetSlotType)
+            return false;
+
+        return TryEquipFromInventory(index);
+    }
+
     public bool UnequipToInventory(EquipmentSlotType slotType)
     {
-        if (equipmentSlots == null)
-            equipmentSlots = GetComponent<EquipmentSlots>();
+        ResolveReferences();
 
         if (equipmentSlots == null)
             return false;
@@ -213,10 +254,34 @@ public class PlayerInventory : MonoBehaviour
         return true;
     }
 
+    public bool UnequipToInventorySlot(EquipmentSlotType slotType, int inventoryIndex)
+    {
+        ResolveReferences();
+
+        if (!IsValidIndex(inventoryIndex))
+            return false;
+
+        if (equipmentSlots == null || entity == null)
+            return false;
+
+        if (!IsSlotEmpty(inventoryIndex))
+            return false;
+
+        InventoryItemEntry equippedEntry = GetEquippedEntry(slotType);
+        if (equippedEntry == null || equippedEntry.IsEmpty)
+            return false;
+
+        items[inventoryIndex] = equippedEntry.Clone();
+        NormalizeSlot(inventoryIndex);
+
+        entity.UnequipItem(slotType);
+        OnInventoryChanged?.Invoke();
+        return true;
+    }
+
     public InventoryItemEntry GetEquippedEntry(EquipmentSlotType slotType)
     {
-        if (equipmentSlots == null)
-            equipmentSlots = GetComponent<EquipmentSlots>();
+        ResolveReferences();
 
         if (equipmentSlots == null)
             return null;
@@ -237,11 +302,7 @@ public class PlayerInventory : MonoBehaviour
         if (entry == null || entry.IsEmpty)
             return false;
 
-        if (entity == null)
-            entity = GetComponent<Entity>();
-
-        if (equipmentSlots == null)
-            equipmentSlots = GetComponent<EquipmentSlots>();
+        ResolveReferences();
 
         if (entity == null || equipmentSlots == null)
             return false;
@@ -269,6 +330,26 @@ public class PlayerInventory : MonoBehaviour
 
         OnInventoryChanged?.Invoke();
         return true;
+    }
+
+    public bool TryEquipEntryDirectlyToSlot(InventoryItemEntry entry, EquipmentSlotType targetSlotType)
+    {
+        if (entry == null || entry.IsEmpty)
+            return false;
+
+        if (entry.SlotType != targetSlotType)
+            return false;
+
+        return TryEquipEntryDirectly(entry);
+    }
+
+    private void ResolveReferences()
+    {
+        if (entity == null)
+            entity = GetComponent<Entity>();
+
+        if (equipmentSlots == null)
+            equipmentSlots = GetComponent<EquipmentSlots>();
     }
 
     private void EnsureSize()
