@@ -103,13 +103,20 @@ public class ItemButtonUI : MonoBehaviour,
             layoutElement.flexibleHeight = 0f;
         }
 
+        if (backgroundImage != null)
+            backgroundImage.raycastTarget = true;
+
+        if (iconImage != null)
+            iconImage.raycastTarget = false;
+
         if (button != null)
         {
             button.onClick.RemoveAllListeners();
-            button.transition = Selectable.Transition.ColorTint;
+            button.transition = Selectable.Transition.None;
+            button.targetGraphic = backgroundImage;
         }
 
-        ApplyVisualState(false, false, true);
+        ResetVisualCompletely();
     }
 
     public void Setup(
@@ -131,11 +138,22 @@ public class ItemButtonUI : MonoBehaviour,
         canClick = onNormalClick != null || onShiftClick != null;
         canDrag = draggable && !isEmpty;
 
+        ResetVisualCompletely();
+
         if (iconImage != null)
         {
-            iconImage.sprite = isEmpty ? null : entry.Icon;
-            iconImage.enabled = !isEmpty && entry.Icon != null;
-            iconImage.color = isEmpty || entry.Icon == null ? emptyIconColor : enabledIconColor;
+            if (isEmpty || entry.Icon == null)
+            {
+                iconImage.sprite = null;
+                iconImage.enabled = false;
+                iconImage.color = emptyIconColor;
+            }
+            else
+            {
+                iconImage.sprite = entry.Icon;
+                iconImage.enabled = true;
+                iconImage.color = enabledIconColor;
+            }
         }
 
         ApplyVisualState(canClick, canDrag, isEmpty);
@@ -334,11 +352,37 @@ public class ItemButtonUI : MonoBehaviour,
         iconImage.raycastTarget = false;
     }
 
-    private void ApplyVisualState(bool clickable, bool draggable, bool isEmpty)
+    private void ResetVisualCompletely()
     {
         if (button != null)
-            button.interactable = true;
+        {
+            button.transition = Selectable.Transition.None;
+            button.interactable = false;
+        }
 
+        if (backgroundImage != null)
+            backgroundImage.color = emptyColor;
+
+        if (iconImage != null)
+        {
+            iconImage.sprite = null;
+            iconImage.enabled = false;
+            iconImage.color = emptyIconColor;
+        }
+
+        if (canvasGroup != null)
+        {
+            canvasGroup.alpha = 1f;
+            canvasGroup.blocksRaycasts = true;
+            canvasGroup.interactable = true;
+        }
+
+        if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject == gameObject)
+            EventSystem.current.SetSelectedGameObject(null);
+    }
+
+    private void ApplyVisualState(bool clickable, bool draggable, bool isEmpty)
+    {
         if (backgroundImage != null)
         {
             if (isEmpty)
@@ -358,6 +402,12 @@ public class ItemButtonUI : MonoBehaviour,
 
                 backgroundImage.color = finalColor;
             }
+        }
+
+        if (button != null)
+        {
+            button.transition = Selectable.Transition.None;
+            button.interactable = clickable;
         }
 
         canClick = clickable;

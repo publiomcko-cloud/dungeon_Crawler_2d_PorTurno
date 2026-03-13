@@ -10,6 +10,7 @@ public class LootWindowUI : MonoBehaviour
     [Header("External References")]
     [SerializeField] private GameObject windowRoot;
     [SerializeField] private LootWindowGridAutoBuilder windowBuilder;
+    [SerializeField] private PartyInventory partyInventory;
 
     [Header("Window")]
     [SerializeField] private Button closeButton;
@@ -42,7 +43,6 @@ public class LootWindowUI : MonoBehaviour
     [SerializeField] private int selectorFontSize = 14;
 
     private Entity currentEntity;
-    private PlayerInventory currentInventory;
     private bool isOpen = false;
 
     private readonly List<GameObject> spawnedUI = new List<GameObject>();
@@ -99,9 +99,9 @@ public class LootWindowUI : MonoBehaviour
         if (!isOpen)
             return;
 
-        if (currentEntity == null || currentInventory == null || currentEntity.IsDead)
+        if (currentEntity == null || currentEntity.IsDead)
         {
-            Entity fallback = FindFirstAlivePlayerWithInventory();
+            Entity fallback = FindFirstAlivePlayer();
             if (fallback != null)
                 SelectPlayer(fallback);
             else
@@ -137,11 +137,11 @@ public class LootWindowUI : MonoBehaviour
         itemButtonPrefab = prefab;
     }
 
-    public void OpenForCell(Entity entity, PlayerInventory inventory, Vector2Int cell)
+    public void OpenForCell(Entity entity, Vector2Int cell)
     {
         EnsureWindowReady();
 
-        if (entity == null || inventory == null)
+        if (entity == null || partyInventory == null)
             return;
 
         if (itemButtonPrefab == null)
@@ -157,7 +157,6 @@ public class LootWindowUI : MonoBehaviour
         }
 
         currentEntity = entity;
-        currentInventory = inventory;
         isOpen = true;
 
         if (windowRoot != null)
@@ -172,7 +171,6 @@ public class LootWindowUI : MonoBehaviour
 
         isOpen = false;
         currentEntity = null;
-        currentInventory = null;
 
         ClearSpawnedUI();
 
@@ -182,15 +180,11 @@ public class LootWindowUI : MonoBehaviour
 
     private void TryOpenForFirstPlayer()
     {
-        Entity firstPlayer = FindFirstAlivePlayerWithInventory();
+        Entity firstPlayer = FindFirstAlivePlayer();
         if (firstPlayer == null)
             return;
 
-        PlayerInventory inventory = firstPlayer.GetComponent<PlayerInventory>();
-        if (inventory == null)
-            return;
-
-        OpenForCell(firstPlayer, inventory, firstPlayer.GridPosition);
+        OpenForCell(firstPlayer, firstPlayer.GridPosition);
     }
 
     private void EnsureWindowReady()
@@ -216,9 +210,12 @@ public class LootWindowUI : MonoBehaviour
 
         if (windowRoot == null && windowBuilder != null)
             windowRoot = windowBuilder.gameObject;
+
+        if (partyInventory == null)
+            partyInventory = FindFirstObjectByType<PartyInventory>();
     }
 
-    private Entity FindFirstAlivePlayerWithInventory()
+    private Entity FindFirstAlivePlayer()
     {
         List<Entity> players = GetAvailablePlayers();
         if (players.Count == 0)
@@ -246,9 +243,6 @@ public class LootWindowUI : MonoBehaviour
             if (entity.IsDead)
                 continue;
 
-            if (entity.GetComponent<PlayerInventory>() == null)
-                continue;
-
             cachedPlayers.Add(entity);
         }
 
@@ -261,12 +255,7 @@ public class LootWindowUI : MonoBehaviour
         if (entity == null)
             return;
 
-        PlayerInventory inventory = entity.GetComponent<PlayerInventory>();
-        if (inventory == null)
-            return;
-
         currentEntity = entity;
-        currentInventory = inventory;
         HideTooltip();
         RefreshUI();
     }
@@ -336,7 +325,7 @@ public class LootWindowUI : MonoBehaviour
 
     private void RefreshUI()
     {
-        if (!isOpen || currentEntity == null || currentInventory == null)
+        if (!isOpen || currentEntity == null || partyInventory == null)
             return;
 
         EnsureWindowReady();
@@ -350,10 +339,10 @@ public class LootWindowUI : MonoBehaviour
         ClearSpawnedUI();
 
         if (titleText != null)
-            titleText.text = $"Inventory - {currentEntity.name}";
+            titleText.text = $"Party Inventory - Equipando: {currentEntity.name}";
 
         if (hintText != null)
-            hintText.text = "Party | Click chão -> mochila | Shift+Click chão -> equipar | Click mochila -> equipar | Click equipado -> mochila | Drag ativo";
+            hintText.text = "Party shared bag | seletor troca só equipamentos | chão e mochila são únicos";
 
         BuildSelectorSection();
         BuildEquippedSection();
@@ -465,7 +454,7 @@ public class LootWindowUI : MonoBehaviour
 
     private void CreateEquippedButton(EquipmentSlotType slotType)
     {
-        InventoryItemEntry equipped = currentInventory.GetEquippedEntry(slotType);
+        InventoryItemEntry equipped = partyInventory.GetEquippedEntry(currentEntity, slotType);
 
         ItemButtonUI button = Instantiate(itemButtonPrefab, equippedContentRoot);
         button.ConfigureAsEquippedSlot(slotType);
@@ -476,7 +465,7 @@ public class LootWindowUI : MonoBehaviour
                 ? null
                 : () =>
                 {
-                    bool moved = currentInventory.UnequipToInventory(slotType);
+                    bool moved = partyInventory.UnequipToInventory(currentEntity, slotType);
                     if (moved)
                         RefreshUI();
                 },
@@ -494,7 +483,7 @@ public class LootWindowUI : MonoBehaviour
 
     private void BuildInventorySection()
     {
-        IReadOnlyList<InventoryItemEntry> items = currentInventory.Items;
+        IReadOnlyList<InventoryItemEntry> items = partyInventory.Items;
 
         for (int i = 0; i < items.Count; i++)
         {
@@ -503,7 +492,7 @@ public class LootWindowUI : MonoBehaviour
             InventoryItemEntry equippedCompare = null;
 
             if (entry != null && !entry.IsEmpty)
-                equippedCompare = currentInventory.GetEquippedEntry(entry.SlotType);
+                equippedCompare = partyInventory.GetEquippedEntry(currentEntity, entry.SlotType);
 
             ItemButtonUI button = Instantiate(itemButtonPrefab, inventoryContentRoot);
             button.ConfigureAsInventorySlot(index);
@@ -515,7 +504,7 @@ public class LootWindowUI : MonoBehaviour
                 hasItem
                     ? () =>
                     {
-                        bool equipped = currentInventory.TryEquipFromInventory(index);
+                        bool equipped = partyInventory.TryEquipFromInventory(currentEntity, index);
                         if (equipped)
                             RefreshUI();
                     }
@@ -523,7 +512,7 @@ public class LootWindowUI : MonoBehaviour
                 hasItem
                     ? () =>
                     {
-                        bool equipped = currentInventory.TryEquipFromInventory(index);
+                        bool equipped = partyInventory.TryEquipFromInventory(currentEntity, index);
                         if (equipped)
                             RefreshUI();
                     }
@@ -542,7 +531,8 @@ public class LootWindowUI : MonoBehaviour
 
     private void BuildGroundLootSection()
     {
-        List<GroundItem> items = GetGroundItemsInCell(currentEntity.GridPosition);
+        Vector2Int anchorCell = GetPartyAnchorCell();
+        List<GroundItem> items = GetGroundItemsInCell(anchorCell);
         int maxGroundSlots = 20;
 
         for (int i = 0; i < maxGroundSlots; i++)
@@ -562,7 +552,7 @@ public class LootWindowUI : MonoBehaviour
             InventoryItemEntry equippedCompare = null;
 
             if (entry != null && !entry.IsEmpty)
-                equippedCompare = currentInventory.GetEquippedEntry(entry.SlotType);
+                equippedCompare = partyInventory.GetEquippedEntry(currentEntity, entry.SlotType);
 
             button.ConfigureAsGroundSlot(groundItem);
 
@@ -570,13 +560,13 @@ public class LootWindowUI : MonoBehaviour
                 entry,
                 () =>
                 {
-                    bool moved = groundItem.TrySendToInventory(currentInventory);
+                    bool moved = groundItem.TrySendToPartyInventory(partyInventory);
                     if (moved)
                         RefreshUI();
                 },
                 () =>
                 {
-                    bool equipped = groundItem.TryEquipDirect(currentEntity, currentInventory);
+                    bool equipped = groundItem.TryEquipDirectToParty(currentEntity, partyInventory);
                     if (equipped)
                         RefreshUI();
                 },
@@ -589,9 +579,18 @@ public class LootWindowUI : MonoBehaviour
         }
     }
 
+    private Vector2Int GetPartyAnchorCell()
+    {
+        List<Entity> players = GetAvailablePlayers();
+        if (players.Count > 0)
+            return players[0].GridPosition;
+
+        return currentEntity != null ? currentEntity.GridPosition : Vector2Int.zero;
+    }
+
     private void HandleDropOnInventorySlot(int targetIndex, ItemButtonUI sourceButton)
     {
-        if (currentInventory == null || sourceButton == null)
+        if (partyInventory == null || sourceButton == null)
             return;
 
         bool changed = false;
@@ -599,16 +598,16 @@ public class LootWindowUI : MonoBehaviour
         switch (sourceButton.SlotKind)
         {
             case ItemButtonSlotKind.Inventory:
-                changed = currentInventory.MoveItem(sourceButton.InventoryIndex, targetIndex);
+                changed = partyInventory.MoveItem(sourceButton.InventoryIndex, targetIndex);
                 break;
 
             case ItemButtonSlotKind.Equipped:
-                changed = currentInventory.UnequipToInventorySlot(sourceButton.EquippedSlotType, targetIndex);
+                changed = partyInventory.UnequipToInventorySlot(currentEntity, sourceButton.EquippedSlotType, targetIndex);
                 break;
 
             case ItemButtonSlotKind.Ground:
                 if (sourceButton.GroundItemRef != null)
-                    changed = sourceButton.GroundItemRef.TrySendToInventorySlot(currentInventory, targetIndex);
+                    changed = sourceButton.GroundItemRef.TrySendToPartyInventorySlot(partyInventory, targetIndex);
                 break;
         }
 
@@ -618,7 +617,7 @@ public class LootWindowUI : MonoBehaviour
 
     private void HandleDropOnEquippedSlot(EquipmentSlotType targetSlotType, ItemButtonUI sourceButton)
     {
-        if (currentInventory == null || currentEntity == null || sourceButton == null)
+        if (partyInventory == null || currentEntity == null || sourceButton == null)
             return;
 
         bool changed = false;
@@ -626,12 +625,12 @@ public class LootWindowUI : MonoBehaviour
         switch (sourceButton.SlotKind)
         {
             case ItemButtonSlotKind.Inventory:
-                changed = currentInventory.TryEquipFromInventoryToSlot(sourceButton.InventoryIndex, targetSlotType);
+                changed = partyInventory.TryEquipFromInventoryToSlot(currentEntity, sourceButton.InventoryIndex, targetSlotType);
                 break;
 
             case ItemButtonSlotKind.Ground:
                 if (sourceButton.GroundItemRef != null)
-                    changed = sourceButton.GroundItemRef.TryEquipDirectToSlot(currentEntity, currentInventory, targetSlotType);
+                    changed = sourceButton.GroundItemRef.TryEquipDirectToPartySlot(currentEntity, partyInventory, targetSlotType);
                 break;
         }
 

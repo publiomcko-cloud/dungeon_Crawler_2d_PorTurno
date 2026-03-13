@@ -123,6 +123,74 @@ public class GroundItem : MonoBehaviour
         return true;
     }
 
+    public bool TrySendToPartyInventory(PartyInventory inventory)
+    {
+        if (consumed || inventory == null)
+            return false;
+
+        InventoryItemEntry entry = ToInventoryEntry();
+        if (entry == null)
+            return false;
+
+        bool added = inventory.AddEntry(entry);
+        if (!added)
+            return false;
+
+        Consume();
+        return true;
+    }
+
+    public bool TrySendToPartyInventorySlot(PartyInventory inventory, int targetIndex)
+    {
+        if (consumed || inventory == null)
+            return false;
+
+        InventoryItemEntry entry = ToInventoryEntry();
+        if (entry == null)
+            return false;
+
+        bool added = inventory.AddEntryToIndex(entry, targetIndex);
+        if (!added)
+            return false;
+
+        Consume();
+        return true;
+    }
+
+    public bool TryEquipDirectToParty(Entity entity, PartyInventory inventory)
+    {
+        if (consumed || entity == null || inventory == null)
+            return false;
+
+        InventoryItemEntry entry = ToInventoryEntry();
+        if (entry == null)
+            return false;
+
+        bool equipped = inventory.TryEquipEntryDirectly(entity, entry);
+        if (!equipped)
+            return false;
+
+        Consume();
+        return true;
+    }
+
+    public bool TryEquipDirectToPartySlot(Entity entity, PartyInventory inventory, EquipmentSlotType targetSlotType)
+    {
+        if (consumed || entity == null || inventory == null)
+            return false;
+
+        InventoryItemEntry entry = ToInventoryEntry();
+        if (entry == null)
+            return false;
+
+        bool equipped = inventory.TryEquipEntryDirectlyToSlot(entity, entry, targetSlotType);
+        if (!equipped)
+            return false;
+
+        Consume();
+        return true;
+    }
+
     private void Consume()
     {
         if (consumed)
