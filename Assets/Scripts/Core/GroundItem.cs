@@ -44,17 +44,6 @@ public class GroundItem : MonoBehaviour
         RefreshVisual();
     }
 
-    public string GetDisplayName()
-    {
-        if (staticItem != null)
-            return staticItem.itemName;
-
-        if (generatedItem != null)
-            return generatedItem.itemName;
-
-        return "Empty";
-    }
-
     public InventoryItemEntry ToInventoryEntry()
     {
         if (staticItem != null)
@@ -71,13 +60,11 @@ public class GroundItem : MonoBehaviour
         if (consumed || inventory == null)
             return false;
 
-        bool added = false;
+        InventoryItemEntry entry = ToInventoryEntry();
+        if (entry == null)
+            return false;
 
-        if (staticItem != null)
-            added = inventory.AddStaticItem(staticItem);
-        else if (generatedItem != null)
-            added = inventory.AddGeneratedItem(generatedItem);
-
+        bool added = inventory.AddEntry(entry);
         if (!added)
             return false;
 
@@ -112,7 +99,6 @@ public class GroundItem : MonoBehaviour
             return false;
 
         bool equipped = inventory.TryEquipEntryDirectly(entry);
-
         if (!equipped)
             return false;
 
@@ -120,7 +106,7 @@ public class GroundItem : MonoBehaviour
         return true;
     }
 
-    public bool TryEquipDirectToSlot(Entity entity, PlayerInventory inventory, EquipmentSlotType slotType)
+    public bool TryEquipDirectToSlot(Entity entity, PlayerInventory inventory, EquipmentSlotType targetSlotType)
     {
         if (consumed || entity == null || inventory == null)
             return false;
@@ -129,8 +115,7 @@ public class GroundItem : MonoBehaviour
         if (entry == null)
             return false;
 
-        bool equipped = inventory.TryEquipEntryDirectlyToSlot(entry, slotType);
-
+        bool equipped = inventory.TryEquipEntryDirectlyToSlot(entry, targetSlotType);
         if (!equipped)
             return false;
 

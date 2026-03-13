@@ -10,18 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 393aa99d61971b949a6339e3e3e55ced, type: 3}
-  m_Name: Sword_Test
+  m_Name: Armor_test 1
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
-  itemName: sword test
+  itemName: armor test
   description: 
   icon: {fileID: -7774559783131498481, guid: 592d5cf5ddca64f4d8cb6bf9a1b27372, type: 3}
-  slotType: 0
+  slotType: 1
   rarity: 0
   requiredLevel: 1
   value: 10
   statBonus:
-    hp: 0
-    atk: 3
-    def: 0
+    hp: 5
+    atk: 0
+    def: 2
     ap: 0
     crit: 0

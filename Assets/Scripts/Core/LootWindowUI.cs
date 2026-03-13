@@ -60,13 +60,9 @@ public class LootWindowUI : MonoBehaviour
         if (Input.GetKeyDown(toggleLootKey))
         {
             if (isOpen)
-            {
                 CloseWindow();
-            }
             else
-            {
                 TryOpenForFirstPlayer();
-            }
 
             return;
         }
@@ -238,7 +234,7 @@ public class LootWindowUI : MonoBehaviour
             titleText.text = $"Inventory - {currentEntity.name}";
 
         if (hintText != null)
-            hintText.text = "Drag: mochila↔mochila | mochila→equipado | equipado→mochila | chão→mochila/equipado | Click antigo continua";
+            hintText.text = "Click chão -> mochila | Shift+Click chão -> equipar | Click mochila -> equipar | Click equipado -> mochila | Drag ativo";
 
         BuildEquippedSection();
         BuildInventorySection();
@@ -274,7 +270,8 @@ public class LootWindowUI : MonoBehaviour
             (sourceButton) =>
             {
                 HandleDropOnEquippedSlot(slotType, sourceButton);
-            }
+            },
+            null
         );
 
         spawnedUI.Add(button.gameObject);
@@ -288,6 +285,10 @@ public class LootWindowUI : MonoBehaviour
         {
             int index = i;
             InventoryItemEntry entry = items[index];
+            InventoryItemEntry equippedCompare = null;
+
+            if (entry != null && !entry.IsEmpty)
+                equippedCompare = currentInventory.GetEquippedEntry(entry.SlotType);
 
             ItemButtonUI button = Instantiate(itemButtonPrefab, inventoryContentRoot);
             button.ConfigureAsInventorySlot(index);
@@ -316,7 +317,8 @@ public class LootWindowUI : MonoBehaviour
                 (sourceButton) =>
                 {
                     HandleDropOnInventorySlot(index, sourceButton);
-                }
+                },
+                equippedCompare
             );
 
             spawnedUI.Add(button.gameObject);
@@ -335,13 +337,17 @@ public class LootWindowUI : MonoBehaviour
             if (i >= items.Count || items[i] == null)
             {
                 button.ClearContext();
-                button.Setup(null, null, null, false, null);
+                button.Setup(null, null, null, false, null, null);
                 spawnedUI.Add(button.gameObject);
                 continue;
             }
 
             GroundItem groundItem = items[i];
             InventoryItemEntry entry = groundItem.ToInventoryEntry();
+            InventoryItemEntry equippedCompare = null;
+
+            if (entry != null && !entry.IsEmpty)
+                equippedCompare = currentInventory.GetEquippedEntry(entry.SlotType);
 
             button.ConfigureAsGroundSlot(groundItem);
 
@@ -360,7 +366,8 @@ public class LootWindowUI : MonoBehaviour
                         RefreshUI();
                 },
                 true,
-                null
+                null,
+                equippedCompare
             );
 
             spawnedUI.Add(button.gameObject);

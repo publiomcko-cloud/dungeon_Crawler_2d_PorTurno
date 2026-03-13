@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Armor_common_profile
   m_EditorClassIdentifier: Assembly-CSharp::ItemGenerationProfile
   generatedNamePrefix: Armor
+  icon: {fileID: -7774559783131498481, guid: 592d5cf5ddca64f4d8cb6bf9a1b27372, type: 3}
   slotType: 1
   rarity: 0
   requiredLevel: 1

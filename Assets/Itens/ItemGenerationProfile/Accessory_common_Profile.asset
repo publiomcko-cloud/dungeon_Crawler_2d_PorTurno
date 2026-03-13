@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Accessory_common_Profile
   m_EditorClassIdentifier: Assembly-CSharp::ItemGenerationProfile
   generatedNamePrefix: Ring
+  icon: {fileID: -7774559783131498481, guid: 592d5cf5ddca64f4d8cb6bf9a1b27372, type: 3}
   slotType: 2
   rarity: 0
   requiredLevel: 1

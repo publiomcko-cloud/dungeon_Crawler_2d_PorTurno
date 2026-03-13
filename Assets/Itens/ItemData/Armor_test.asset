@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemName: armor test
   description: 
+  icon: {fileID: -7774559783131498481, guid: 592d5cf5ddca64f4d8cb6bf9a1b27372, type: 3}
   slotType: 1
   rarity: 0
   requiredLevel: 1

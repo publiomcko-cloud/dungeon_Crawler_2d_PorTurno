@@ -42,6 +42,20 @@ public class InventoryItemEntry
         }
     }
 
+    public string Description
+    {
+        get
+        {
+            if (staticItem != null)
+                return staticItem.description;
+
+            if (generatedItem != null)
+                return generatedItem.description;
+
+            return "";
+        }
+    }
+
     public Sprite Icon
     {
         get
@@ -56,6 +70,20 @@ public class InventoryItemEntry
         }
     }
 
+    public ItemRarity Rarity
+    {
+        get
+        {
+            if (staticItem != null)
+                return staticItem.rarity;
+
+            if (generatedItem != null)
+                return generatedItem.rarity;
+
+            return ItemRarity.Common;
+        }
+    }
+
     public int RequiredLevel
     {
         get
@@ -67,6 +95,20 @@ public class InventoryItemEntry
                 return generatedItem.requiredLevel;
 
             return 1;
+        }
+    }
+
+    public int Value
+    {
+        get
+        {
+            if (staticItem != null)
+                return staticItem.value;
+
+            if (generatedItem != null)
+                return generatedItem.value;
+
+            return 0;
         }
     }
 

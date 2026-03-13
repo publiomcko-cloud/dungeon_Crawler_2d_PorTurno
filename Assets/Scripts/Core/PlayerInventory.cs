@@ -95,6 +95,7 @@ public class PlayerInventory : MonoBehaviour
             return false;
 
         items[emptyIndex] = entry.Clone();
+        NormalizeSlot(emptyIndex);
         OnInventoryChanged?.Invoke();
         return true;
     }
@@ -123,6 +124,8 @@ public class PlayerInventory : MonoBehaviour
         if (!IsValidIndex(index))
             return false;
 
+        EnsureSize();
+
         if (items[index] == null || items[index].IsEmpty)
             return false;
 
@@ -136,10 +139,10 @@ public class PlayerInventory : MonoBehaviour
         if (!IsValidIndex(fromIndex) || !IsValidIndex(toIndex))
             return false;
 
+        EnsureSize();
+
         if (fromIndex == toIndex)
             return false;
-
-        EnsureSize();
 
         if (items[fromIndex] == null || items[fromIndex].IsEmpty)
             return false;
@@ -162,8 +165,9 @@ public class PlayerInventory : MonoBehaviour
         if (!IsValidIndex(index))
             return false;
 
-        InventoryItemEntry entry = items[index];
+        EnsureSize();
 
+        InventoryItemEntry entry = items[index];
         if (entry == null || entry.IsEmpty)
             return false;
 
@@ -175,27 +179,7 @@ public class PlayerInventory : MonoBehaviour
         if (entity.Level < entry.RequiredLevel)
             return false;
 
-        InventoryItemEntry equippedEntry = GetEquippedEntry(entry.SlotType);
-
-        if (equippedEntry != null && !equippedEntry.IsEmpty)
-        {
-            int emptyIndex = GetFirstEmptySlotIndex();
-            if (emptyIndex < 0 || emptyIndex == index)
-            {
-                int swapIndex = index;
-                items[swapIndex] = equippedEntry.Clone();
-            }
-            else
-            {
-                items[emptyIndex] = equippedEntry.Clone();
-                NormalizeSlot(emptyIndex);
-                items[index] = new InventoryItemEntry();
-            }
-        }
-        else
-        {
-            items[index] = new InventoryItemEntry();
-        }
+        InventoryItemEntry oldEquipped = GetEquippedEntry(entry.SlotType);
 
         bool equipped = false;
 
@@ -205,10 +189,30 @@ public class PlayerInventory : MonoBehaviour
             equipped = entity.EquipGeneratedItem(entry.GeneratedItem);
 
         if (!equipped)
-        {
-            items[index] = entry.Clone();
-            OnInventoryChanged?.Invoke();
             return false;
+
+        items[index] = new InventoryItemEntry();
+
+        if (oldEquipped != null && !oldEquipped.IsEmpty)
+        {
+            if (!AddEntry(oldEquipped))
+            {
+                bool restored = false;
+
+                if (oldEquipped.IsStaticItem)
+                    restored = entity.EquipItem(oldEquipped.StaticItem);
+                else if (oldEquipped.IsGeneratedItem)
+                    restored = entity.EquipGeneratedItem(oldEquipped.GeneratedItem);
+
+                items[index] = entry.Clone();
+                NormalizeSlot(index);
+
+                if (!restored)
+                    Debug.LogWarning("Falha ao restaurar item equipado anterior.");
+
+                OnInventoryChanged?.Invoke();
+                return false;
+            }
         }
 
         NormalizeSlot(index);
@@ -220,6 +224,8 @@ public class PlayerInventory : MonoBehaviour
     {
         if (!IsValidIndex(index))
             return false;
+
+        EnsureSize();
 
         InventoryItemEntry entry = items[index];
         if (entry == null || entry.IsEmpty)
@@ -235,18 +241,14 @@ public class PlayerInventory : MonoBehaviour
     {
         ResolveReferences();
 
-        if (equipmentSlots == null)
-            return false;
-
-        if (!HasEmptySlot())
+        if (entity == null || equipmentSlots == null)
             return false;
 
         InventoryItemEntry equippedEntry = GetEquippedEntry(slotType);
         if (equippedEntry == null || equippedEntry.IsEmpty)
             return false;
 
-        bool added = AddEntry(equippedEntry);
-        if (!added)
+        if (!AddEntry(equippedEntry))
             return false;
 
         entity.UnequipItem(slotType);
@@ -258,13 +260,15 @@ public class PlayerInventory : MonoBehaviour
     {
         ResolveReferences();
 
+        if (entity == null || equipmentSlots == null)
+            return false;
+
         if (!IsValidIndex(inventoryIndex))
             return false;
 
-        if (equipmentSlots == null || entity == null)
-            return false;
+        EnsureSize();
 
-        if (!IsSlotEmpty(inventoryIndex))
+        if (items[inventoryIndex] != null && !items[inventoryIndex].IsEmpty)
             return false;
 
         InventoryItemEntry equippedEntry = GetEquippedEntry(slotType);
@@ -310,10 +314,7 @@ public class PlayerInventory : MonoBehaviour
         if (entity.Level < entry.RequiredLevel)
             return false;
 
-        InventoryItemEntry equippedEntry = GetEquippedEntry(entry.SlotType);
-
-        if (equippedEntry != null && !equippedEntry.IsEmpty && !HasEmptySlot())
-            return false;
+        InventoryItemEntry oldEquipped = GetEquippedEntry(entry.SlotType);
 
         bool equipped = false;
 
@@ -325,8 +326,24 @@ public class PlayerInventory : MonoBehaviour
         if (!equipped)
             return false;
 
-        if (equippedEntry != null && !equippedEntry.IsEmpty)
-            AddEntry(equippedEntry);
+        if (oldEquipped != null && !oldEquipped.IsEmpty)
+        {
+            if (!AddEntry(oldEquipped))
+            {
+                bool restored = false;
+
+                if (oldEquipped.IsStaticItem)
+                    restored = entity.EquipItem(oldEquipped.StaticItem);
+                else if (oldEquipped.IsGeneratedItem)
+                    restored = entity.EquipGeneratedItem(oldEquipped.GeneratedItem);
+
+                if (!restored)
+                    Debug.LogWarning("Falha ao restaurar item equipado anterior.");
+
+                OnInventoryChanged?.Invoke();
+                return false;
+            }
+        }
 
         OnInventoryChanged?.Invoke();
         return true;

@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 3394674317136754478}
   - component: {fileID: 7415654416390145111}
   - component: {fileID: 3233171221082976298}
-  - component: {fileID: 6447824926646468255}
   - component: {fileID: 1039542179084757021}
   - component: {fileID: 3039133925998551272}
   - component: {fileID: -5709151814346295151}
@@ -125,26 +124,6 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &6447824926646468255
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1385065507397254606}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.LayoutElement
-  m_IgnoreLayout: 0
-  m_MinWidth: -1
-  m_MinHeight: -1
-  m_PreferredWidth: -1
-  m_PreferredHeight: -1
-  m_FlexibleWidth: -1
-  m_FlexibleHeight: -1
-  m_LayoutPriority: 1
 --- !u!114 &1039542179084757021
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -170,7 +149,9 @@ MonoBehaviour:
   emptyColor: {r: 0.14, g: 0.14, b: 0.14, a: 1}
   enabledIconColor: {r: 1, g: 1, b: 1, a: 1}
   emptyIconColor: {r: 1, g: 1, b: 1, a: 0}
-  dragAlpha: 0.8
+  ghostAlpha: 0.9
+  tintSlotByRarity: 1
+  rarityTintStrength: 0.45
 --- !u!114 &3039133925998551272
 MonoBehaviour:
   m_ObjectHideFlags: 0

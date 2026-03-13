@@ -35,21 +35,29 @@ public class ItemButtonUI : MonoBehaviour,
     [SerializeField] private Color emptyColor = new Color(0.14f, 0.14f, 0.14f, 1f);
     [SerializeField] private Color enabledIconColor = Color.white;
     [SerializeField] private Color emptyIconColor = new Color(1f, 1f, 1f, 0f);
-    [SerializeField] private float dragAlpha = 0.8f;
+    [SerializeField] private float ghostAlpha = 0.9f;
+
+    [Header("Rarity Tint")]
+    [SerializeField] private bool tintSlotByRarity = true;
+    [SerializeField] private float rarityTintStrength = 0.45f;
 
     private Action normalClickAction;
     private Action shiftClickAction;
     private Action<ItemButtonUI> receiveDropAction;
+
     private InventoryItemEntry tooltipEntry;
+    private InventoryItemEntry compareEntry;
 
     private bool canClick;
     private bool canDrag;
 
-    private Transform originalParent;
-    private int originalSiblingIndex;
-
     private RectTransform rectTransform;
     private Canvas rootCanvas;
+    private Camera canvasCamera;
+
+    private GameObject dragGhostObject;
+    private RectTransform dragGhostRect;
+    private Image dragGhostImage;
 
     public ItemButtonSlotKind SlotKind { get; private set; } = ItemButtonSlotKind.None;
     public int InventoryIndex { get; private set; } = -1;
@@ -80,6 +88,9 @@ public class ItemButtonUI : MonoBehaviour,
         rectTransform = GetComponent<RectTransform>();
         rootCanvas = GetComponentInParent<Canvas>();
 
+        if (rootCanvas != null && rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
+            canvasCamera = rootCanvas.worldCamera;
+
         EnsureIcon();
 
         if (layoutElement != null)
@@ -88,8 +99,8 @@ public class ItemButtonUI : MonoBehaviour,
             layoutElement.preferredWidth = preferredWidth;
             layoutElement.minHeight = minHeight;
             layoutElement.preferredHeight = preferredHeight;
-            layoutElement.flexibleHeight = 0f;
             layoutElement.flexibleWidth = 0f;
+            layoutElement.flexibleHeight = 0f;
         }
 
         if (button != null)
@@ -106,9 +117,11 @@ public class ItemButtonUI : MonoBehaviour,
         Action onNormalClick,
         Action onShiftClick = null,
         bool draggable = false,
-        Action<ItemButtonUI> onReceiveDrop = null)
+        Action<ItemButtonUI> onReceiveDrop = null,
+        InventoryItemEntry compareTarget = null)
     {
         tooltipEntry = entry;
+        compareEntry = compareTarget;
         normalClickAction = onNormalClick;
         shiftClickAction = onShiftClick;
         receiveDropAction = onReceiveDrop;
@@ -121,8 +134,8 @@ public class ItemButtonUI : MonoBehaviour,
         if (iconImage != null)
         {
             iconImage.sprite = isEmpty ? null : entry.Icon;
-            iconImage.color = isEmpty || entry.Icon == null ? emptyIconColor : enabledIconColor;
             iconImage.enabled = !isEmpty && entry.Icon != null;
+            iconImage.color = isEmpty || entry.Icon == null ? emptyIconColor : enabledIconColor;
         }
 
         ApplyVisualState(canClick, canDrag, isEmpty);
@@ -189,20 +202,8 @@ public class ItemButtonUI : MonoBehaviour,
         if (ItemTooltipUI.Instance != null)
             ItemTooltipUI.Instance.Hide();
 
-        originalParent = transform.parent;
-        originalSiblingIndex = transform.GetSiblingIndex();
-
-        if (rootCanvas == null)
-            rootCanvas = GetComponentInParent<Canvas>();
-
-        canvasGroup.alpha = dragAlpha;
-        canvasGroup.blocksRaycasts = false;
-
-        if (rootCanvas != null)
-        {
-            transform.SetParent(rootCanvas.transform, true);
-            transform.SetAsLastSibling();
-        }
+        CreateDragGhost();
+        UpdateGhostPosition(eventData);
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -210,8 +211,7 @@ public class ItemButtonUI : MonoBehaviour,
         if (!canDrag || !HasItem)
             return;
 
-        if (rectTransform != null)
-            rectTransform.position = eventData.position;
+        UpdateGhostPosition(eventData);
     }
 
     public void OnEndDrag(PointerEventData eventData)
@@ -224,32 +224,88 @@ public class ItemButtonUI : MonoBehaviour,
         if (eventData.pointerCurrentRaycast.gameObject != null)
             targetButton = eventData.pointerCurrentRaycast.gameObject.GetComponentInParent<ItemButtonUI>();
 
-        canvasGroup.alpha = 1f;
-        canvasGroup.blocksRaycasts = true;
+        DestroyDragGhost();
 
         if (targetButton != null && targetButton != this && targetButton.CanReceiveDrop)
             targetButton.ReceiveDrop(this);
-
-        if (this == null)
-            return;
-
-        if (originalParent != null)
-        {
-            transform.SetParent(originalParent, true);
-            transform.SetSiblingIndex(originalSiblingIndex);
-        }
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (tooltipEntry != null && !tooltipEntry.IsEmpty && ItemTooltipUI.Instance != null)
-            ItemTooltipUI.Instance.Show(tooltipEntry);
+        if (!HasItem || ItemTooltipUI.Instance == null)
+            return;
+
+        ItemTooltipUI.Instance.Show(tooltipEntry, compareEntry);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
         if (ItemTooltipUI.Instance != null)
             ItemTooltipUI.Instance.Hide();
+    }
+
+    private void CreateDragGhost()
+    {
+        DestroyDragGhost();
+
+        if (rootCanvas == null)
+            rootCanvas = GetComponentInParent<Canvas>();
+
+        if (rootCanvas == null || tooltipEntry == null || tooltipEntry.IsEmpty || tooltipEntry.Icon == null)
+            return;
+
+        dragGhostObject = new GameObject("DragGhost", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
+        dragGhostObject.transform.SetParent(rootCanvas.transform, false);
+        dragGhostObject.transform.SetAsLastSibling();
+
+        dragGhostRect = dragGhostObject.GetComponent<RectTransform>();
+        dragGhostImage = dragGhostObject.GetComponent<Image>();
+        CanvasGroup ghostGroup = dragGhostObject.GetComponent<CanvasGroup>();
+
+        ghostGroup.blocksRaycasts = false;
+        ghostGroup.interactable = false;
+        ghostGroup.alpha = ghostAlpha;
+
+        dragGhostImage.sprite = tooltipEntry.Icon;
+        dragGhostImage.preserveAspect = true;
+        dragGhostImage.raycastTarget = false;
+        dragGhostImage.color = enabledIconColor;
+
+        Vector2 size = rectTransform != null ? rectTransform.rect.size : new Vector2(preferredWidth, preferredHeight);
+        dragGhostRect.sizeDelta = size;
+        dragGhostRect.anchorMin = new Vector2(0.5f, 0.5f);
+        dragGhostRect.anchorMax = new Vector2(0.5f, 0.5f);
+        dragGhostRect.pivot = new Vector2(0.5f, 0.5f);
+    }
+
+    private void UpdateGhostPosition(PointerEventData eventData)
+    {
+        if (dragGhostRect == null || rootCanvas == null)
+            return;
+
+        RectTransform canvasRect = rootCanvas.GetComponent<RectTransform>();
+        if (canvasRect == null)
+            return;
+
+        Vector2 localPoint;
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            canvasRect,
+            eventData.position,
+            rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvasCamera,
+            out localPoint))
+        {
+            dragGhostRect.anchoredPosition = localPoint;
+        }
+    }
+
+    private void DestroyDragGhost()
+    {
+        if (dragGhostObject != null)
+            Destroy(dragGhostObject);
+
+        dragGhostObject = null;
+        dragGhostRect = null;
+        dragGhostImage = null;
     }
 
     private void EnsureIcon()
@@ -284,9 +340,46 @@ public class ItemButtonUI : MonoBehaviour,
             button.interactable = true;
 
         if (backgroundImage != null)
-            backgroundImage.color = isEmpty ? emptyColor : normalColor;
+        {
+            if (isEmpty)
+            {
+                backgroundImage.color = emptyColor;
+            }
+            else
+            {
+                Color finalColor = normalColor;
+
+                if (tintSlotByRarity && tooltipEntry != null && !tooltipEntry.IsEmpty)
+                {
+                    Color rarityColor = GetRarityColor(tooltipEntry.Rarity);
+                    finalColor = Color.Lerp(normalColor, rarityColor, rarityTintStrength);
+                    finalColor.a = normalColor.a;
+                }
+
+                backgroundImage.color = finalColor;
+            }
+        }
 
         canClick = clickable;
         canDrag = draggable;
+    }
+
+    private Color GetRarityColor(ItemRarity rarity)
+    {
+        switch (rarity)
+        {
+            case ItemRarity.Common:
+                return new Color(0.75f, 0.75f, 0.75f, 1f);
+            case ItemRarity.Uncommon:
+                return new Color(0.35f, 0.85f, 0.35f, 1f);
+            case ItemRarity.Rare:
+                return new Color(0.3f, 0.55f, 1f, 1f);
+            case ItemRarity.Epic:
+                return new Color(0.75f, 0.35f, 0.95f, 1f);
+            case ItemRarity.Legendary:
+                return new Color(1f, 0.65f, 0.15f, 1f);
+            default:
+                return Color.white;
+        }
     }
 }
