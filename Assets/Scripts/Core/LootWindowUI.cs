@@ -12,6 +12,7 @@ public class LootWindowUI : MonoBehaviour
     [SerializeField] private Button closeButton;
 
     [Header("Panels")]
+    [SerializeField] private Transform selectorContentRoot;
     [SerializeField] private Transform equippedContentRoot;
     [SerializeField] private Transform inventoryContentRoot;
     [SerializeField] private Transform groundLootContentRoot;
@@ -30,11 +31,19 @@ public class LootWindowUI : MonoBehaviour
     [Header("Detection")]
     [SerializeField] private float detectionRadius = 0.35f;
 
+    [Header("Selector Style")]
+    [SerializeField] private Vector2 selectorButtonSize = new Vector2(52f, 74f);
+    [SerializeField] private Color selectorNormalColor = new Color(0.18f, 0.18f, 0.18f, 1f);
+    [SerializeField] private Color selectorSelectedColor = new Color(0.25f, 0.45f, 0.90f, 1f);
+    [SerializeField] private Color selectorTextColor = Color.white;
+    [SerializeField] private int selectorFontSize = 14;
+
     private Entity currentEntity;
     private PlayerInventory currentInventory;
     private bool isOpen = false;
 
     private readonly List<GameObject> spawnedUI = new List<GameObject>();
+    private readonly List<Entity> cachedPlayers = new List<Entity>();
 
     public bool IsOpen => isOpen;
 
@@ -53,6 +62,21 @@ public class LootWindowUI : MonoBehaviour
 
         if (windowRoot != null)
             windowRoot.SetActive(false);
+    }
+
+    private void Start()
+    {
+        EnsureWindowReady();
+    }
+
+    private void OnDisable()
+    {
+        HideTooltip();
+    }
+
+    private void OnDestroy()
+    {
+        HideTooltip();
     }
 
     private void Update()
@@ -77,12 +101,19 @@ public class LootWindowUI : MonoBehaviour
             return;
 
         if (currentEntity == null || currentInventory == null || currentEntity.IsDead)
-            CloseWindow();
+        {
+            Entity fallback = FindFirstAlivePlayerWithInventory();
+            if (fallback != null)
+                SelectPlayer(fallback);
+            else
+                CloseWindow();
+        }
     }
 
     public void ConfigureReferences(
         GameObject newWindowRoot,
         Button newCloseButton,
+        Transform newSelectorContentRoot,
         Transform newEquippedContentRoot,
         Transform newInventoryContentRoot,
         Transform newGroundLootContentRoot,
@@ -91,6 +122,7 @@ public class LootWindowUI : MonoBehaviour
     {
         windowRoot = newWindowRoot;
         closeButton = newCloseButton;
+        selectorContentRoot = newSelectorContentRoot;
         equippedContentRoot = newEquippedContentRoot;
         inventoryContentRoot = newInventoryContentRoot;
         groundLootContentRoot = newGroundLootContentRoot;
@@ -108,16 +140,23 @@ public class LootWindowUI : MonoBehaviour
 
     public void OpenForCell(Entity entity, PlayerInventory inventory, Vector2Int cell)
     {
+        EnsureWindowReady();
         AutoFindReferences();
 
         if (entity == null || inventory == null)
             return;
 
         if (itemButtonPrefab == null)
+        {
+            Debug.LogWarning("LootWindowUI: ItemButtonPrefab está vazio.");
             return;
+        }
 
-        if (equippedContentRoot == null || inventoryContentRoot == null || groundLootContentRoot == null)
+        if (selectorContentRoot == null || equippedContentRoot == null || inventoryContentRoot == null || groundLootContentRoot == null)
+        {
+            Debug.LogWarning("LootWindowUI: um ou mais content roots não foram encontrados.");
             return;
+        }
 
         currentEntity = entity;
         currentInventory = inventory;
@@ -131,6 +170,8 @@ public class LootWindowUI : MonoBehaviour
 
     public void CloseWindow()
     {
+        HideTooltip();
+
         isOpen = false;
         currentEntity = null;
         currentInventory = null;
@@ -143,22 +184,112 @@ public class LootWindowUI : MonoBehaviour
 
     private void TryOpenForFirstPlayer()
     {
+        EnsureWindowReady();
+
+        Entity firstPlayer = FindFirstAlivePlayerWithInventory();
+        if (firstPlayer == null)
+            return;
+
+        PlayerInventory inventory = firstPlayer.GetComponent<PlayerInventory>();
+        if (inventory == null)
+            return;
+
+        OpenForCell(firstPlayer, inventory, firstPlayer.GridPosition);
+    }
+
+    private void EnsureWindowReady()
+    {
+        AutoFindReferences();
+
+        bool missingSomething =
+            itemButtonPrefab == null ||
+            selectorContentRoot == null ||
+            equippedContentRoot == null ||
+            inventoryContentRoot == null ||
+            groundLootContentRoot == null;
+
+        if (!missingSomething)
+            return;
+
+        LootWindowGridAutoBuilder builder = GetComponent<LootWindowGridAutoBuilder>();
+        if (builder == null)
+            builder = FindFirstObjectByType<LootWindowGridAutoBuilder>();
+
+        if (builder != null)
+        {
+            builder.Build();
+            AutoFindReferences();
+        }
+
+        if (itemButtonPrefab == null && builder != null)
+        {
+            var field = typeof(LootWindowGridAutoBuilder).GetField("itemButtonPrefab",
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.NonPublic |
+                System.Reflection.BindingFlags.Public);
+
+            if (field != null)
+            {
+                ItemButtonUI prefab = field.GetValue(builder) as ItemButtonUI;
+                if (prefab != null)
+                    itemButtonPrefab = prefab;
+            }
+        }
+
+        BindCloseButton();
+    }
+
+    private Entity FindFirstAlivePlayerWithInventory()
+    {
+        List<Entity> players = GetAvailablePlayers();
+        if (players.Count == 0)
+            return null;
+
+        return players[0];
+    }
+
+    private List<Entity> GetAvailablePlayers()
+    {
+        cachedPlayers.Clear();
+
         Entity[] entities = FindObjectsByType<Entity>(FindObjectsSortMode.None);
 
         for (int i = 0; i < entities.Length; i++)
         {
             Entity entity = entities[i];
 
-            if (entity == null || entity.IsDead || entity.team != Team.Player)
+            if (entity == null)
                 continue;
 
-            PlayerInventory inventory = entity.GetComponent<PlayerInventory>();
-            if (inventory == null)
+            if (entity.team != Team.Player)
                 continue;
 
-            OpenForCell(entity, inventory, entity.GridPosition);
-            return;
+            if (entity.IsDead)
+                continue;
+
+            if (entity.GetComponent<PlayerInventory>() == null)
+                continue;
+
+            cachedPlayers.Add(entity);
         }
+
+        cachedPlayers.Sort((a, b) => string.Compare(a.name, b.name, System.StringComparison.Ordinal));
+        return cachedPlayers;
+    }
+
+    private void SelectPlayer(Entity entity)
+    {
+        if (entity == null)
+            return;
+
+        PlayerInventory inventory = entity.GetComponent<PlayerInventory>();
+        if (inventory == null)
+            return;
+
+        currentEntity = entity;
+        currentInventory = inventory;
+        HideTooltip();
+        RefreshUI();
     }
 
     private void AutoFindReferences()
@@ -168,6 +299,13 @@ public class LootWindowUI : MonoBehaviour
             Transform t = FindDeepChild(windowRoot != null ? windowRoot.transform : null, "CloseButton");
             if (t != null)
                 closeButton = t.GetComponent<Button>();
+        }
+
+        if (selectorContentRoot == null)
+        {
+            Transform t = FindDeepChild(windowRoot != null ? windowRoot.transform : null, "SelectorContent");
+            if (t != null)
+                selectorContentRoot = t;
         }
 
         if (equippedContentRoot == null)
@@ -220,12 +358,13 @@ public class LootWindowUI : MonoBehaviour
         if (!isOpen || currentEntity == null || currentInventory == null)
             return;
 
+        EnsureWindowReady();
         AutoFindReferences();
 
         if (itemButtonPrefab == null)
             return;
 
-        if (equippedContentRoot == null || inventoryContentRoot == null || groundLootContentRoot == null)
+        if (selectorContentRoot == null || equippedContentRoot == null || inventoryContentRoot == null || groundLootContentRoot == null)
             return;
 
         ClearSpawnedUI();
@@ -234,11 +373,107 @@ public class LootWindowUI : MonoBehaviour
             titleText.text = $"Inventory - {currentEntity.name}";
 
         if (hintText != null)
-            hintText.text = "Click chão -> mochila | Shift+Click chão -> equipar | Click mochila -> equipar | Click equipado -> mochila | Drag ativo";
+            hintText.text = "Party | Click chão -> mochila | Shift+Click chão -> equipar | Click mochila -> equipar | Click equipado -> mochila | Drag ativo";
 
+        BuildSelectorSection();
         BuildEquippedSection();
         BuildInventorySection();
         BuildGroundLootSection();
+    }
+
+    private void BuildSelectorSection()
+    {
+        List<Entity> players = GetAvailablePlayers();
+
+        for (int i = 0; i < players.Count; i++)
+        {
+            Entity player = players[i];
+            int displayIndex = i + 1;
+
+            GameObject buttonGO = CreateSelectorButton(player, displayIndex, player == currentEntity);
+            buttonGO.transform.SetParent(selectorContentRoot, false);
+            spawnedUI.Add(buttonGO);
+        }
+    }
+
+    private GameObject CreateSelectorButton(Entity player, int displayIndex, bool selected)
+    {
+        GameObject root = new GameObject(
+            $"PlayerSelector_{displayIndex}",
+            typeof(RectTransform),
+            typeof(Image),
+            typeof(Button),
+            typeof(LayoutElement)
+        );
+
+        RectTransform rootRect = root.GetComponent<RectTransform>();
+        rootRect.sizeDelta = selectorButtonSize;
+
+        LayoutElement layout = root.GetComponent<LayoutElement>();
+        layout.minWidth = selectorButtonSize.x;
+        layout.preferredWidth = selectorButtonSize.x;
+        layout.minHeight = selectorButtonSize.y;
+        layout.preferredHeight = selectorButtonSize.y;
+        layout.flexibleWidth = 0f;
+        layout.flexibleHeight = 0f;
+
+        Image bg = root.GetComponent<Image>();
+        bg.color = selected ? selectorSelectedColor : selectorNormalColor;
+
+        Button button = root.GetComponent<Button>();
+        button.onClick.RemoveAllListeners();
+        button.onClick.AddListener(() =>
+        {
+            SelectPlayer(player);
+        });
+
+        GameObject iconGO = new GameObject("Portrait", typeof(RectTransform), typeof(Image));
+        iconGO.transform.SetParent(root.transform, false);
+
+        RectTransform iconRect = iconGO.GetComponent<RectTransform>();
+        iconRect.anchorMin = new Vector2(0.5f, 1f);
+        iconRect.anchorMax = new Vector2(0.5f, 1f);
+        iconRect.pivot = new Vector2(0.5f, 1f);
+        iconRect.sizeDelta = new Vector2(34f, 34f);
+        iconRect.anchoredPosition = new Vector2(0f, -6f);
+
+        Image icon = iconGO.GetComponent<Image>();
+        icon.raycastTarget = false;
+        icon.preserveAspect = true;
+        icon.sprite = GetEntityPortrait(player);
+        icon.color = icon.sprite != null ? Color.white : new Color(1f, 1f, 1f, 0f);
+
+        GameObject labelGO = new GameObject("Label", typeof(RectTransform));
+        labelGO.transform.SetParent(root.transform, false);
+
+        RectTransform labelRect = labelGO.GetComponent<RectTransform>();
+        labelRect.anchorMin = new Vector2(0f, 0f);
+        labelRect.anchorMax = new Vector2(1f, 0f);
+        labelRect.pivot = new Vector2(0.5f, 0f);
+        labelRect.offsetMin = new Vector2(4f, 4f);
+        labelRect.offsetMax = new Vector2(-4f, 22f);
+
+        TextMeshProUGUI label = labelGO.AddComponent<TextMeshProUGUI>();
+        label.text = displayIndex.ToString();
+        label.fontSize = selectorFontSize;
+        label.color = selectorTextColor;
+        label.alignment = TextAlignmentOptions.Center;
+        label.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
+        label.raycastTarget = false;
+
+        return root;
+    }
+
+    private Sprite GetEntityPortrait(Entity entity)
+    {
+        if (entity == null)
+            return null;
+
+        SpriteRenderer spriteRenderer = entity.GetComponentInChildren<SpriteRenderer>(true);
+        if (spriteRenderer == null)
+            return null;
+
+        return spriteRenderer.sprite;
     }
 
     private void BuildEquippedSection()
@@ -456,6 +691,12 @@ public class LootWindowUI : MonoBehaviour
         }
 
         spawnedUI.Clear();
+    }
+
+    private void HideTooltip()
+    {
+        if (ItemTooltipUI.Instance != null)
+            ItemTooltipUI.Instance.Hide();
     }
 
     private Transform FindDeepChild(Transform parent, string targetName)

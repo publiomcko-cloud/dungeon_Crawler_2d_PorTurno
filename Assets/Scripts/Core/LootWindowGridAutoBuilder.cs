@@ -15,21 +15,31 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
     [SerializeField] private ItemButtonUI itemButtonPrefab;
 
     [Header("Window")]
-    [SerializeField] private Vector2 windowSize = new Vector2(1080f, 720f);
-    [SerializeField] private Color windowColor = new Color(0.08f, 0.08f, 0.08f, 0.94f);
+    [SerializeField] private Vector2 windowSize = new Vector2(760f, 430f);
+    [SerializeField] private Color windowColor = new Color(0.08f, 0.08f, 0.08f, 0.96f);
 
     [Header("Panels")]
     [SerializeField] private Color panelColor = new Color(0.14f, 0.14f, 0.14f, 0.96f);
 
+    [Header("Layout")]
+    [SerializeField] private float topBarHeight = 56f;
+    [SerializeField] private float outerPadding = 10f;
+    [SerializeField] private float panelSpacing = 10f;
+
+    [Header("Panel Widths")]
+    [SerializeField] private float selectorPanelWidth = 84f;
+    [SerializeField] private float equippedPanelWidth = 90f;
+    [SerializeField] private float inventoryPanelWidth = 250f;
+    [SerializeField] private float groundPanelWidth = 250f;
+
     [Header("Slots")]
-    [SerializeField] private Vector2 slotSize = new Vector2(92f, 92f);
-    [SerializeField] private Vector2 equipmentSlotSize = new Vector2(110f, 110f);
-    [SerializeField] private Vector2 gridSpacing = new Vector2(8f, 8f);
+    [SerializeField] private Vector2 slotSize = new Vector2(48f, 48f);
+    [SerializeField] private Vector2 gridSpacing = new Vector2(4f, 4f);
 
     [Header("Text")]
-    [SerializeField] private int titleFontSize = 30;
-    [SerializeField] private int hintFontSize = 18;
-    [SerializeField] private int headerFontSize = 22;
+    [SerializeField] private int titleFontSize = 18;
+    [SerializeField] private int hintFontSize = 10;
+    [SerializeField] private int headerFontSize = 13;
 
     [Header("Build")]
     [SerializeField] private bool rebuildOnStart = true;
@@ -66,8 +76,8 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
             windowRoot,
             new Vector2(0f, 1f),
             new Vector2(1f, 1f),
-            new Vector2(20f, -10f),
-            new Vector2(-80f, -52f),
+            new Vector2(12f, -6f),
+            new Vector2(-48f, -26f),
             "Inventory",
             titleFontSize,
             TextAlignmentOptions.Left
@@ -78,9 +88,9 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
             windowRoot,
             new Vector2(0f, 1f),
             new Vector2(1f, 1f),
-            new Vector2(20f, -56f),
-            new Vector2(-20f, -92f),
-            "E abre/fecha | Esc fecha | Click chão -> mochila | Shift+Click chão -> equipar | Click mochila -> equipar | Click equipado -> mochila",
+            new Vector2(12f, -28f),
+            new Vector2(-12f, -50f),
+            "Party | E abre/fecha | Esc fecha",
             hintFontSize,
             TextAlignmentOptions.Left
         );
@@ -90,78 +100,226 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
             windowRoot,
             new Vector2(1f, 1f),
             new Vector2(1f, 1f),
-            new Vector2(-60f, -14f),
-            new Vector2(-14f, -58f),
-            "X"
+            new Vector2(-34f, -6f),
+            new Vector2(-6f, -30f),
+            "X",
+            14
         );
+
+        Rect contentArea = CalculateContentArea();
+
+        float x = contentArea.xMin;
+
+        RectTransform selectorPanel = CreatePanel(
+            "SelectorPanel",
+            windowRoot,
+            x,
+            contentArea.center.y,
+            selectorPanelWidth,
+            contentArea.height
+        );
+        x += selectorPanelWidth + panelSpacing;
 
         RectTransform equippedPanel = CreatePanel(
             "EquippedPanel",
             windowRoot,
-            new Vector2(0f, 0f),
-            new Vector2(0.22f, 1f),
-            new Vector2(20f, 20f),
-            new Vector2(-10f, -110f)
+            x,
+            contentArea.center.y,
+            equippedPanelWidth,
+            contentArea.height
         );
+        x += equippedPanelWidth + panelSpacing;
 
         RectTransform inventoryPanel = CreatePanel(
             "InventoryPanel",
             windowRoot,
-            new Vector2(0.22f, 0f),
-            new Vector2(0.61f, 1f),
-            new Vector2(10f, 20f),
-            new Vector2(-10f, -110f)
+            x,
+            contentArea.center.y,
+            inventoryPanelWidth,
+            contentArea.height
         );
+        x += inventoryPanelWidth + panelSpacing;
 
         RectTransform groundPanel = CreatePanel(
-            "GroundLootPanel",
+            "GroundPanel",
             windowRoot,
-            new Vector2(0.61f, 0f),
-            new Vector2(1f, 1f),
-            new Vector2(10f, 20f),
-            new Vector2(-20f, -110f)
+            x,
+            contentArea.center.y,
+            groundPanelWidth,
+            contentArea.height
         );
 
-        CreateSectionHeader("EquippedHeader", equippedPanel, "Equipped");
-        CreateSectionHeader("InventoryHeader", inventoryPanel, "Inventory");
-        CreateSectionHeader("GroundHeader", groundPanel, "Ground Loot");
+        CreatePanelHeader("SelectorHeader", selectorPanel, "Party");
+        CreatePanelHeader("EquippedHeader", equippedPanel, "Equipped");
+        CreatePanelHeader("InventoryHeader", inventoryPanel, "Inventory");
+        CreatePanelHeader("GroundHeader", groundPanel, "Ground");
 
-        RectTransform equippedContent = CreateEquipmentContent("EquippedContent", equippedPanel);
-        RectTransform inventoryContent = CreateGridContent("InventoryContent", inventoryPanel, 4);
-        RectTransform groundContent = CreateGridContent("GroundLootContent", groundPanel, 4);
+        RectTransform selectorContent = CreateContentRoot(
+            "SelectorContent",
+            selectorPanel,
+            new Vector2(6f, 6f),
+            new Vector2(-6f, -24f)
+        );
 
-        if (lootWindowUI != null)
+        VerticalLayoutGroup selectorLayout = EnsureComponent<VerticalLayoutGroup>(selectorContent.gameObject);
+        selectorLayout.childAlignment = TextAnchor.UpperCenter;
+        selectorLayout.childControlWidth = true;
+        selectorLayout.childControlHeight = false;
+        selectorLayout.childForceExpandWidth = true;
+        selectorLayout.childForceExpandHeight = false;
+        selectorLayout.spacing = 6f;
+        selectorLayout.padding = new RectOffset(0, 0, 0, 0);
+
+        ContentSizeFitter selectorFitter = EnsureComponent<ContentSizeFitter>(selectorContent.gameObject);
+        selectorFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        selectorFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        RectTransform equippedContent = CreateContentRoot(
+            "EquippedContent",
+            equippedPanel,
+            new Vector2(8f, 8f),
+            new Vector2(-8f, -26f)
+        );
+
+        VerticalLayoutGroup equippedLayout = EnsureComponent<VerticalLayoutGroup>(equippedContent.gameObject);
+        equippedLayout.childAlignment = TextAnchor.UpperCenter;
+        equippedLayout.childControlWidth = false;
+        equippedLayout.childControlHeight = false;
+        equippedLayout.childForceExpandWidth = false;
+        equippedLayout.childForceExpandHeight = false;
+        equippedLayout.spacing = 6f;
+        equippedLayout.padding = new RectOffset(0, 0, 0, 0);
+
+        ContentSizeFitter equippedFitter = EnsureComponent<ContentSizeFitter>(equippedContent.gameObject);
+        equippedFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        equippedFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        RectTransform inventoryContent = CreateContentRoot(
+            "InventoryContent",
+            inventoryPanel,
+            new Vector2(8f, 8f),
+            new Vector2(-8f, -26f)
+        );
+
+        GridLayoutGroup inventoryGrid = EnsureComponent<GridLayoutGroup>(inventoryContent.gameObject);
+        inventoryGrid.cellSize = slotSize;
+        inventoryGrid.spacing = gridSpacing;
+        inventoryGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        inventoryGrid.constraintCount = 4;
+        inventoryGrid.startAxis = GridLayoutGroup.Axis.Horizontal;
+        inventoryGrid.startCorner = GridLayoutGroup.Corner.UpperLeft;
+        inventoryGrid.childAlignment = TextAnchor.UpperLeft;
+
+        RectTransform groundContent = CreateContentRoot(
+            "GroundLootContent",
+            groundPanel,
+            new Vector2(8f, 8f),
+            new Vector2(-8f, -26f)
+        );
+
+        GridLayoutGroup groundGrid = EnsureComponent<GridLayoutGroup>(groundContent.gameObject);
+        groundGrid.cellSize = slotSize;
+        groundGrid.spacing = gridSpacing;
+        groundGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        groundGrid.constraintCount = 4;
+        groundGrid.startAxis = GridLayoutGroup.Axis.Horizontal;
+        groundGrid.startCorner = GridLayoutGroup.Corner.UpperLeft;
+        groundGrid.childAlignment = TextAnchor.UpperLeft;
+
+        WireController(
+            closeButton,
+            selectorContent,
+            equippedContent,
+            inventoryContent,
+            groundContent,
+            titleText,
+            hintText
+        );
+    }
+
+    private Rect CalculateContentArea()
+    {
+        float width = windowSize.x - outerPadding * 2f;
+        float height = windowSize.y - topBarHeight - outerPadding;
+        float xMin = -windowSize.x * 0.5f + outerPadding;
+        float yMin = -windowSize.y * 0.5f + outerPadding;
+
+        return new Rect(xMin, yMin, width, height);
+    }
+
+    private void CreatePanelHeader(string objectName, RectTransform parent, string textValue)
+    {
+        CreateText(
+            objectName,
+            parent,
+            new Vector2(0f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(4f, -4f),
+            new Vector2(-4f, -22f),
+            textValue,
+            headerFontSize,
+            TextAlignmentOptions.Center
+        );
+    }
+
+    private void WireController(
+        Button closeButton,
+        Transform selectorContent,
+        Transform equippedContent,
+        Transform inventoryContent,
+        Transform groundContent,
+        TMP_Text titleText,
+        TMP_Text hintText)
+    {
+        if (lootWindowUI == null)
+            lootWindowUI = FindFirstObjectByType<LootWindowUI>();
+
+        if (lootWindowUI == null)
         {
-            lootWindowUI.ConfigureReferences(
-                windowRoot.gameObject,
-                closeButton,
-                equippedContent,
-                inventoryContent,
-                groundContent,
-                titleText,
-                hintText
-            );
-
-            lootWindowUI.SetItemButtonPrefab(itemButtonPrefab);
+            Debug.LogWarning("LootWindowGridAutoBuilder: não encontrou LootWindowUI na cena.");
+            return;
         }
+
+        lootWindowUI.ConfigureReferences(
+            windowRoot.gameObject,
+            closeButton,
+            selectorContent,
+            equippedContent,
+            inventoryContent,
+            groundContent,
+            titleText,
+            hintText
+        );
+
+        if (itemButtonPrefab != null)
+            lootWindowUI.SetItemButtonPrefab(itemButtonPrefab);
+        else
+            Debug.LogWarning("LootWindowGridAutoBuilder: ItemButtonPrefab não está preenchido.");
     }
 
     private void EnsureRootVisual()
     {
-        Image image = GetOrAdd<Image>(windowRoot.gameObject);
+        Image image = EnsureComponent<Image>(windowRoot.gameObject);
         image.color = windowColor;
     }
 
-    private RectTransform CreatePanel(string name, RectTransform parent, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
+    private RectTransform CreatePanel(
+        string objectName,
+        RectTransform parent,
+        float leftX,
+        float centerY,
+        float width,
+        float height)
     {
-        GameObject go = new GameObject(name, typeof(RectTransform), typeof(Image));
+        GameObject go = new GameObject(objectName, typeof(RectTransform), typeof(Image));
         go.transform.SetParent(parent, false);
 
         RectTransform rect = go.GetComponent<RectTransform>();
-        rect.anchorMin = anchorMin;
-        rect.anchorMax = anchorMax;
-        rect.offsetMin = offsetMin;
-        rect.offsetMax = offsetMax;
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0f, 0.5f);
+        rect.anchoredPosition = new Vector2(leftX, centerY);
+        rect.sizeDelta = new Vector2(width, height);
 
         Image image = go.GetComponent<Image>();
         image.color = panelColor;
@@ -169,83 +327,36 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
         return rect;
     }
 
-    private void CreateSectionHeader(string name, RectTransform parent, string text)
+    private RectTransform CreateContentRoot(
+        string objectName,
+        RectTransform parent,
+        Vector2 offsetMin,
+        Vector2 offsetMax)
     {
-        CreateText(
-            name,
-            parent,
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
-            new Vector2(10f, -10f),
-            new Vector2(-10f, -40f),
-            text,
-            headerFontSize,
-            TextAlignmentOptions.Left
-        );
-    }
-
-    private RectTransform CreateEquipmentContent(string name, RectTransform parent)
-    {
-        GameObject go = new GameObject(name, typeof(RectTransform));
+        GameObject go = new GameObject(objectName, typeof(RectTransform));
         go.transform.SetParent(parent, false);
 
         RectTransform rect = go.GetComponent<RectTransform>();
         rect.anchorMin = new Vector2(0f, 0f);
         rect.anchorMax = new Vector2(1f, 1f);
-        rect.offsetMin = new Vector2(12f, 12f);
-        rect.offsetMax = new Vector2(-12f, -50f);
-
-        VerticalLayoutGroup layout = GetOrAdd<VerticalLayoutGroup>(go);
-        layout.childAlignment = TextAnchor.UpperCenter;
-        layout.childControlWidth = false;
-        layout.childControlHeight = false;
-        layout.childForceExpandWidth = false;
-        layout.childForceExpandHeight = false;
-        layout.spacing = 12f;
-        layout.padding = new RectOffset(0, 0, 0, 0);
-
-        ContentSizeFitter fitter = GetOrAdd<ContentSizeFitter>(go);
-        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-        return rect;
-    }
-
-    private RectTransform CreateGridContent(string name, RectTransform parent, int constraintCount)
-    {
-        GameObject go = new GameObject(name, typeof(RectTransform));
-        go.transform.SetParent(parent, false);
-
-        RectTransform rect = go.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0f, 0f);
-        rect.anchorMax = new Vector2(1f, 1f);
-        rect.offsetMin = new Vector2(12f, 12f);
-        rect.offsetMax = new Vector2(-12f, -50f);
-
-        GridLayoutGroup grid = GetOrAdd<GridLayoutGroup>(go);
-        grid.cellSize = slotSize;
-        grid.spacing = gridSpacing;
-        grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
-        grid.startAxis = GridLayoutGroup.Axis.Horizontal;
-        grid.childAlignment = TextAnchor.UpperLeft;
-        grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-        grid.constraintCount = constraintCount;
+        rect.offsetMin = offsetMin;
+        rect.offsetMax = offsetMax;
 
         return rect;
     }
 
     private TextMeshProUGUI CreateText(
-        string name,
+        string objectName,
         RectTransform parent,
         Vector2 anchorMin,
         Vector2 anchorMax,
         Vector2 offsetMin,
         Vector2 offsetMax,
-        string content,
+        string textValue,
         int fontSize,
         TextAlignmentOptions alignment)
     {
-        GameObject go = new GameObject(name, typeof(RectTransform));
+        GameObject go = new GameObject(objectName, typeof(RectTransform));
         go.transform.SetParent(parent, false);
 
         RectTransform rect = go.GetComponent<RectTransform>();
@@ -254,26 +365,27 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
         rect.offsetMin = offsetMin;
         rect.offsetMax = offsetMax;
 
-        TextMeshProUGUI tmp = GetOrAdd<TextMeshProUGUI>(go);
-        tmp.text = content;
-        tmp.fontSize = fontSize;
-        tmp.color = Color.white;
-        tmp.alignment = alignment;
-        tmp.textWrappingMode = TextWrappingModes.Normal;
+        TextMeshProUGUI text = EnsureComponent<TextMeshProUGUI>(go);
+        text.text = textValue;
+        text.fontSize = fontSize;
+        text.color = Color.white;
+        text.alignment = alignment;
+        text.textWrappingMode = TextWrappingModes.Normal;
 
-        return tmp;
+        return text;
     }
 
     private Button CreateButton(
-        string name,
+        string objectName,
         RectTransform parent,
         Vector2 anchorMin,
         Vector2 anchorMax,
         Vector2 offsetMin,
         Vector2 offsetMax,
-        string label)
+        string label,
+        int fontSize)
     {
-        GameObject go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+        GameObject go = new GameObject(objectName, typeof(RectTransform), typeof(Image), typeof(Button));
         go.transform.SetParent(parent, false);
 
         RectTransform rect = go.GetComponent<RectTransform>();
@@ -283,7 +395,7 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
         rect.offsetMax = offsetMax;
 
         Image image = go.GetComponent<Image>();
-        image.color = new Color(0.25f, 0.25f, 0.25f, 1f);
+        image.color = new Color(0.22f, 0.22f, 0.22f, 1f);
 
         Button button = go.GetComponent<Button>();
 
@@ -296,12 +408,12 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
         textRect.offsetMin = Vector2.zero;
         textRect.offsetMax = Vector2.zero;
 
-        TextMeshProUGUI tmp = GetOrAdd<TextMeshProUGUI>(textGO);
-        tmp.text = label;
-        tmp.fontSize = 24;
-        tmp.color = Color.white;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.textWrappingMode = TextWrappingModes.NoWrap;
+        TextMeshProUGUI text = EnsureComponent<TextMeshProUGUI>(textGO);
+        text.text = label;
+        text.fontSize = fontSize;
+        text.color = Color.white;
+        text.alignment = TextAlignmentOptions.Center;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
 
         return button;
     }
@@ -309,10 +421,10 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
     private void ClearChildren(RectTransform parent)
     {
         for (int i = parent.childCount - 1; i >= 0; i--)
-            Destroy(parent.GetChild(i).gameObject);
+            DestroyImmediate(parent.GetChild(i).gameObject);
     }
 
-    private T GetOrAdd<T>(GameObject go) where T : Component
+    private T EnsureComponent<T>(GameObject go) where T : Component
     {
         T comp = go.GetComponent<T>();
         if (comp == null)

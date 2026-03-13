@@ -425,6 +425,7 @@ MonoBehaviour:
   generatedWeapon:
     itemName: 
     description: 
+    icon: {fileID: 0}
     slotType: 0
     rarity: 0
     requiredLevel: 0
@@ -438,6 +439,7 @@ MonoBehaviour:
   generatedArmor:
     itemName: 
     description: 
+    icon: {fileID: 0}
     slotType: 0
     rarity: 0
     requiredLevel: 0
@@ -451,6 +453,7 @@ MonoBehaviour:
   generatedAccessory:
     itemName: 
     description: 
+    icon: {fileID: 0}
     slotType: 0
     rarity: 0
     requiredLevel: 0
@@ -476,6 +479,9 @@ MonoBehaviour:
   groundItemPrefab: {fileID: 1055958160236924812, guid: 5ad213354f8bc5e458832a2ed44d25af, type: 3}
   lootTable:
   - staticItem: {fileID: 11400000, guid: 4c73c69196df6cb4cbacc7e6ad32fa7f, type: 2}
+    generatedProfile: {fileID: 11400000, guid: e4aa3874aac320643809a539cb3645e9, type: 2}
+    dropChance: 1
+  - staticItem: {fileID: 0}
     generatedProfile: {fileID: 11400000, guid: e4aa3874aac320643809a539cb3645e9, type: 2}
     dropChance: 1
 --- !u!1 &3697052405005247392
