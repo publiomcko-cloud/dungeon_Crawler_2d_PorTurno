@@ -7,8 +7,11 @@ public class LootWindowUI : MonoBehaviour
 {
     public static LootWindowUI Instance;
 
-    [Header("Window")]
+    [Header("External References")]
     [SerializeField] private GameObject windowRoot;
+    [SerializeField] private LootWindowGridAutoBuilder windowBuilder;
+
+    [Header("Window")]
     [SerializeField] private Button closeButton;
 
     [Header("Panels")]
@@ -57,16 +60,12 @@ public class LootWindowUI : MonoBehaviour
 
         Instance = this;
 
+        ResolveExternalReferences();
         AutoFindReferences();
         BindCloseButton();
 
         if (windowRoot != null)
             windowRoot.SetActive(false);
-    }
-
-    private void Start()
-    {
-        EnsureWindowReady();
     }
 
     private void OnDisable()
@@ -141,7 +140,6 @@ public class LootWindowUI : MonoBehaviour
     public void OpenForCell(Entity entity, PlayerInventory inventory, Vector2Int cell)
     {
         EnsureWindowReady();
-        AutoFindReferences();
 
         if (entity == null || inventory == null)
             return;
@@ -154,7 +152,7 @@ public class LootWindowUI : MonoBehaviour
 
         if (selectorContentRoot == null || equippedContentRoot == null || inventoryContentRoot == null || groundLootContentRoot == null)
         {
-            Debug.LogWarning("LootWindowUI: um ou mais content roots não foram encontrados.");
+            Debug.LogWarning("LootWindowUI: content roots ausentes.");
             return;
         }
 
@@ -184,8 +182,6 @@ public class LootWindowUI : MonoBehaviour
 
     private void TryOpenForFirstPlayer()
     {
-        EnsureWindowReady();
-
         Entity firstPlayer = FindFirstAlivePlayerWithInventory();
         if (firstPlayer == null)
             return;
@@ -199,44 +195,27 @@ public class LootWindowUI : MonoBehaviour
 
     private void EnsureWindowReady()
     {
+        ResolveExternalReferences();
+
+        if (windowBuilder != null)
+        {
+            windowBuilder.SetLootWindowUI(this);
+
+            if (!windowBuilder.IsBuilt)
+                windowBuilder.Build();
+        }
+
         AutoFindReferences();
-
-        bool missingSomething =
-            itemButtonPrefab == null ||
-            selectorContentRoot == null ||
-            equippedContentRoot == null ||
-            inventoryContentRoot == null ||
-            groundLootContentRoot == null;
-
-        if (!missingSomething)
-            return;
-
-        LootWindowGridAutoBuilder builder = GetComponent<LootWindowGridAutoBuilder>();
-        if (builder == null)
-            builder = FindFirstObjectByType<LootWindowGridAutoBuilder>();
-
-        if (builder != null)
-        {
-            builder.Build();
-            AutoFindReferences();
-        }
-
-        if (itemButtonPrefab == null && builder != null)
-        {
-            var field = typeof(LootWindowGridAutoBuilder).GetField("itemButtonPrefab",
-                System.Reflection.BindingFlags.Instance |
-                System.Reflection.BindingFlags.NonPublic |
-                System.Reflection.BindingFlags.Public);
-
-            if (field != null)
-            {
-                ItemButtonUI prefab = field.GetValue(builder) as ItemButtonUI;
-                if (prefab != null)
-                    itemButtonPrefab = prefab;
-            }
-        }
-
         BindCloseButton();
+    }
+
+    private void ResolveExternalReferences()
+    {
+        if (windowBuilder == null)
+            windowBuilder = FindFirstObjectByType<LootWindowGridAutoBuilder>();
+
+        if (windowRoot == null && windowBuilder != null)
+            windowRoot = windowBuilder.gameObject;
     }
 
     private Entity FindFirstAlivePlayerWithInventory()
@@ -294,51 +273,53 @@ public class LootWindowUI : MonoBehaviour
 
     private void AutoFindReferences()
     {
+        Transform searchRoot = windowRoot != null ? windowRoot.transform : null;
+
         if (closeButton == null)
         {
-            Transform t = FindDeepChild(windowRoot != null ? windowRoot.transform : null, "CloseButton");
+            Transform t = FindDeepChild(searchRoot, "CloseButton");
             if (t != null)
                 closeButton = t.GetComponent<Button>();
         }
 
         if (selectorContentRoot == null)
         {
-            Transform t = FindDeepChild(windowRoot != null ? windowRoot.transform : null, "SelectorContent");
+            Transform t = FindDeepChild(searchRoot, "SelectorContent");
             if (t != null)
                 selectorContentRoot = t;
         }
 
         if (equippedContentRoot == null)
         {
-            Transform t = FindDeepChild(windowRoot != null ? windowRoot.transform : null, "EquippedContent");
+            Transform t = FindDeepChild(searchRoot, "EquippedContent");
             if (t != null)
                 equippedContentRoot = t;
         }
 
         if (inventoryContentRoot == null)
         {
-            Transform t = FindDeepChild(windowRoot != null ? windowRoot.transform : null, "InventoryContent");
+            Transform t = FindDeepChild(searchRoot, "InventoryContent");
             if (t != null)
                 inventoryContentRoot = t;
         }
 
         if (groundLootContentRoot == null)
         {
-            Transform t = FindDeepChild(windowRoot != null ? windowRoot.transform : null, "GroundLootContent");
+            Transform t = FindDeepChild(searchRoot, "GroundLootContent");
             if (t != null)
                 groundLootContentRoot = t;
         }
 
         if (titleText == null)
         {
-            Transform t = FindDeepChild(windowRoot != null ? windowRoot.transform : null, "TitleText");
+            Transform t = FindDeepChild(searchRoot, "TitleText");
             if (t != null)
                 titleText = t.GetComponent<TMP_Text>();
         }
 
         if (hintText == null)
         {
-            Transform t = FindDeepChild(windowRoot != null ? windowRoot.transform : null, "HintText");
+            Transform t = FindDeepChild(searchRoot, "HintText");
             if (t != null)
                 hintText = t.GetComponent<TMP_Text>();
         }
@@ -359,7 +340,6 @@ public class LootWindowUI : MonoBehaviour
             return;
 
         EnsureWindowReady();
-        AutoFindReferences();
 
         if (itemButtonPrefab == null)
             return;

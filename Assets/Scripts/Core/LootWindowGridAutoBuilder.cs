@@ -42,7 +42,18 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
     [SerializeField] private int headerFontSize = 13;
 
     [Header("Build")]
-    [SerializeField] private bool rebuildOnStart = true;
+    [SerializeField] private bool rebuildOnStart = false;
+
+    private bool isBuilt;
+
+    public bool IsBuilt => isBuilt;
+    public ItemButtonUI ItemButtonPrefab => itemButtonPrefab;
+
+    private void Awake()
+    {
+        if (windowRoot == null)
+            windowRoot = GetComponent<RectTransform>();
+    }
 
     private void Start()
     {
@@ -56,11 +67,11 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
         if (windowRoot == null)
             windowRoot = GetComponent<RectTransform>();
 
-        if (lootWindowUI == null)
-            lootWindowUI = GetComponent<LootWindowUI>();
-
         if (windowRoot == null)
+        {
+            Debug.LogWarning("LootWindowGridAutoBuilder: windowRoot não encontrado.");
             return;
+        }
 
         EnsureRootVisual();
         ClearChildren(windowRoot);
@@ -235,6 +246,13 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
             titleText,
             hintText
         );
+
+        isBuilt = true;
+    }
+
+    public void SetLootWindowUI(LootWindowUI controller)
+    {
+        lootWindowUI = controller;
     }
 
     private Rect CalculateContentArea()
@@ -272,11 +290,8 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
         TMP_Text hintText)
     {
         if (lootWindowUI == null)
-            lootWindowUI = FindFirstObjectByType<LootWindowUI>();
-
-        if (lootWindowUI == null)
         {
-            Debug.LogWarning("LootWindowGridAutoBuilder: não encontrou LootWindowUI na cena.");
+            Debug.LogWarning("LootWindowGridAutoBuilder: LootWindowUI não foi atribuído.");
             return;
         }
 
