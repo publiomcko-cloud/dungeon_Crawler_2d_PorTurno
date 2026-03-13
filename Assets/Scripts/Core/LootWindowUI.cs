@@ -3,6 +3,13 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+public enum LootAnchorMode
+{
+    PartyLeader,
+    SelectedEntity,
+    FirstAlivePlayer
+}
+
 public class LootWindowUI : MonoBehaviour
 {
     public static LootWindowUI Instance;
@@ -11,6 +18,7 @@ public class LootWindowUI : MonoBehaviour
     [SerializeField] private GameObject windowRoot;
     [SerializeField] private LootWindowGridAutoBuilder windowBuilder;
     [SerializeField] private PartyInventory partyInventory;
+    [SerializeField] private PartyAnchorService partyAnchorService;
 
     [Header("Window")]
     [SerializeField] private Button closeButton;
@@ -35,6 +43,9 @@ public class LootWindowUI : MonoBehaviour
     [Header("Detection")]
     [SerializeField] private float detectionRadius = 0.35f;
 
+    [Header("Anchor")]
+    [SerializeField] private LootAnchorMode lootAnchorMode = LootAnchorMode.PartyLeader;
+
     [Header("Selector Style")]
     [SerializeField] private Vector2 selectorButtonSize = new Vector2(52f, 74f);
     [SerializeField] private Color selectorNormalColor = new Color(0.18f, 0.18f, 0.18f, 1f);
@@ -49,6 +60,9 @@ public class LootWindowUI : MonoBehaviour
     private readonly List<Entity> cachedPlayers = new List<Entity>();
 
     public bool IsOpen => isOpen;
+    public Entity CurrentSelectedEntity => currentEntity;
+
+    public event System.Action<Entity> OnSelectedEntityChanged;
 
     private void Awake()
     {
@@ -156,8 +170,12 @@ public class LootWindowUI : MonoBehaviour
             return;
         }
 
+        bool changed = currentEntity != entity;
         currentEntity = entity;
         isOpen = true;
+
+        if (changed)
+            OnSelectedEntityChanged?.Invoke(currentEntity);
 
         if (windowRoot != null)
             windowRoot.SetActive(true);
@@ -180,7 +198,14 @@ public class LootWindowUI : MonoBehaviour
 
     private void TryOpenForFirstPlayer()
     {
-        Entity firstPlayer = FindFirstAlivePlayer();
+        Entity firstPlayer = null;
+
+        if (partyAnchorService != null)
+            firstPlayer = partyAnchorService.GetLeader();
+
+        if (firstPlayer == null)
+            firstPlayer = FindFirstAlivePlayer();
+
         if (firstPlayer == null)
             return;
 
@@ -213,6 +238,9 @@ public class LootWindowUI : MonoBehaviour
 
         if (partyInventory == null)
             partyInventory = FindFirstObjectByType<PartyInventory>();
+
+        if (partyAnchorService == null)
+            partyAnchorService = FindFirstObjectByType<PartyAnchorService>();
     }
 
     private Entity FindFirstAlivePlayer()
@@ -255,7 +283,12 @@ public class LootWindowUI : MonoBehaviour
         if (entity == null)
             return;
 
+        bool changed = currentEntity != entity;
         currentEntity = entity;
+
+        if (changed)
+            OnSelectedEntityChanged?.Invoke(currentEntity);
+
         HideTooltip();
         RefreshUI();
     }
@@ -581,6 +614,16 @@ public class LootWindowUI : MonoBehaviour
 
     private Vector2Int GetPartyAnchorCell()
     {
+        if (lootAnchorMode == LootAnchorMode.SelectedEntity && currentEntity != null)
+            return currentEntity.GridPosition;
+
+        if (lootAnchorMode == LootAnchorMode.PartyLeader && partyAnchorService != null)
+        {
+            Entity leader = partyAnchorService.GetLeader();
+            if (leader != null)
+                return leader.GridPosition;
+        }
+
         List<Entity> players = GetAvailablePlayers();
         if (players.Count > 0)
             return players[0].GridPosition;

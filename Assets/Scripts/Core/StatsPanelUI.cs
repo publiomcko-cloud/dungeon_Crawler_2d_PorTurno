@@ -7,6 +7,8 @@ public class StatsPanelUI : MonoBehaviour
     [Header("Core")]
     [SerializeField] private GameObject panelRoot;
     [SerializeField] private Entity targetEntity;
+    [SerializeField] private LootWindowUI lootWindowUI;
+    [SerializeField] private bool followLootWindowSelection = true;
 
     [Header("Texts")]
     [SerializeField] private TextMeshProUGUI nameText;
@@ -46,8 +48,20 @@ public class StatsPanelUI : MonoBehaviour
         BindButtons();
     }
 
+
+    private void OnEnable()
+    {
+        TryBindLootWindowSelection();
+    }
+
+    private void OnDisable()
+    {
+        UnbindLootWindowSelection();
+    }
+
     private void Start()
     {
+        TryBindLootWindowSelection();
         ResolveTarget();
         RefreshUI();
     }
@@ -62,6 +76,9 @@ public class StatsPanelUI : MonoBehaviour
             if (isOpen)
                 RefreshUI();
         }
+
+        if (followLootWindowSelection && (lootWindowUI == null || lootWindowUI.CurrentSelectedEntity == null))
+            TryBindLootWindowSelection();
 
         if (targetEntity == null || targetStats == null)
             ResolveTarget();
@@ -113,6 +130,9 @@ public class StatsPanelUI : MonoBehaviour
 
     private void ResolveTarget()
     {
+        if (followLootWindowSelection && lootWindowUI != null && lootWindowUI.CurrentSelectedEntity != null)
+            targetEntity = lootWindowUI.CurrentSelectedEntity;
+
         if (targetEntity == null)
             targetEntity = FindFirstPlayerEntity();
 
@@ -258,6 +278,48 @@ public class StatsPanelUI : MonoBehaviour
         if (targetEntity == null) return;
         targetEntity.SpendPointOnCRIT(1f, 1);
         RefreshUI();
+    }
+
+
+    private void TryBindLootWindowSelection()
+    {
+        if (!followLootWindowSelection)
+            return;
+
+        if (lootWindowUI == null)
+            lootWindowUI = LootWindowUI.Instance != null ? LootWindowUI.Instance : FindFirstObjectByType<LootWindowUI>();
+
+        if (lootWindowUI == null)
+            return;
+
+        lootWindowUI.OnSelectedEntityChanged -= HandleLootSelectionChanged;
+        lootWindowUI.OnSelectedEntityChanged += HandleLootSelectionChanged;
+
+        if (lootWindowUI.CurrentSelectedEntity != null)
+            HandleLootSelectionChanged(lootWindowUI.CurrentSelectedEntity);
+    }
+
+    private void UnbindLootWindowSelection()
+    {
+        if (lootWindowUI == null)
+            return;
+
+        lootWindowUI.OnSelectedEntityChanged -= HandleLootSelectionChanged;
+    }
+
+    private void HandleLootSelectionChanged(Entity selectedEntity)
+    {
+        if (!followLootWindowSelection)
+            return;
+
+        if (selectedEntity == null)
+            return;
+
+        targetEntity = selectedEntity;
+        targetStats = targetEntity.GetStatsComponent();
+
+        if (isOpen)
+            RefreshUI();
     }
 
     private Entity FindFirstPlayerEntity()

@@ -42,7 +42,7 @@ public class EnemyAI : MonoBehaviour
 
             if (distance == 1)
             {
-                GridManager.Instance.ResolveCellAttack(enemyCell, playerCell, Team.Enemy);
+                GridManager.Instance.TryMoveGroupOrAttack(enemiesInCell, playerCell);
             }
             else
             {

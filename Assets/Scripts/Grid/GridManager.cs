@@ -176,6 +176,25 @@ public class GridManager : MonoBehaviour
         bool hasEnemy = targetEntities.Any(e => e.team != movingTeam);
         if (hasEnemy)
         {
+            List<Entity> attackers = movers
+                .Where(e => e != null && !e.IsDead && e.team == movingTeam)
+                .ToList();
+
+            List<Entity> defenders = targetEntities
+                .Where(e => e != null && !e.IsDead && e.team != movingTeam)
+                .ToList();
+
+            if (CombatTransitionManager.Instance != null &&
+                CombatTransitionManager.Instance.TryStartCombatTransition(
+                    attackers,
+                    defenders,
+                    sourceCell,
+                    targetCell,
+                    movingTeam))
+            {
+                return true;
+            }
+
             ResolveCellAttack(sourceCell, targetCell, movingTeam);
             return true;
         }

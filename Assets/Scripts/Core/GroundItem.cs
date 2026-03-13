@@ -55,6 +55,7 @@ public class GroundItem : MonoBehaviour
         return null;
     }
 
+    [System.Obsolete("Fluxo legado. Prefira métodos com PartyInventory.")]
     public bool TrySendToInventory(PlayerInventory inventory)
     {
         if (consumed || inventory == null)
@@ -72,6 +73,7 @@ public class GroundItem : MonoBehaviour
         return true;
     }
 
+    [System.Obsolete("Fluxo legado. Prefira métodos com PartyInventory.")]
     public bool TrySendToInventorySlot(PlayerInventory inventory, int targetIndex)
     {
         if (consumed || inventory == null)
@@ -89,6 +91,7 @@ public class GroundItem : MonoBehaviour
         return true;
     }
 
+    [System.Obsolete("Fluxo legado. Prefira métodos com PartyInventory.")]
     public bool TryEquipDirect(Entity entity, PlayerInventory inventory)
     {
         if (consumed || entity == null || inventory == null)
@@ -106,6 +109,7 @@ public class GroundItem : MonoBehaviour
         return true;
     }
 
+    [System.Obsolete("Fluxo legado. Prefira métodos com PartyInventory.")]
     public bool TryEquipDirectToSlot(Entity entity, PlayerInventory inventory, EquipmentSlotType targetSlotType)
     {
         if (consumed || entity == null || inventory == null)

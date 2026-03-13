@@ -4,6 +4,7 @@ using UnityEngine;
 
 [RequireComponent(typeof(Entity))]
 [RequireComponent(typeof(EquipmentSlots))]
+[System.Obsolete("PlayerInventory é legado. Use PartyInventory no fluxo principal da UI.")]
 public class PlayerInventory : MonoBehaviour
 {
     [SerializeField] private int inventorySize = 20;

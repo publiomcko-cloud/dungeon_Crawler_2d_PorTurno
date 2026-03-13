@@ -43,7 +43,10 @@ public class PlayerPartyController : MonoBehaviour
 
         bool actionDone = GridManager.Instance.TryMoveGroupOrAttack(party, targetCell);
 
-        if (actionDone)
+        bool isTransitioningToCombat = CombatTransitionManager.Instance != null &&
+            CombatTransitionManager.Instance.IsTransitionInProgress;
+
+        if (actionDone && !isTransitioningToCombat)
             TurnManager.Instance.StartEnemyTurn();
     }
 }

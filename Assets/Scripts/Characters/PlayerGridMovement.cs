@@ -35,7 +35,8 @@ public class PlayerGridMovement : MonoBehaviour
         if (party.Count == 0)
             return;
 
-        Vector2Int sourceCell = party[0].GridPosition;
+        Entity leader = PartyAnchorService.Instance != null ? PartyAnchorService.Instance.GetLeader() : null;
+        Vector2Int sourceCell = leader != null ? leader.GridPosition : party[0].GridPosition;
 
         party = party
             .Where(e => e != null && !e.IsDead && e.GridPosition == sourceCell)
@@ -48,7 +49,10 @@ public class PlayerGridMovement : MonoBehaviour
 
         bool actionDone = GridManager.Instance.TryMoveGroupOrAttack(party, targetCell);
 
-        if (actionDone)
+        bool isTransitioningToCombat = CombatTransitionManager.Instance != null &&
+            CombatTransitionManager.Instance.IsTransitionInProgress;
+
+        if (actionDone && !isTransitioningToCombat)
             TurnManager.Instance.StartEnemyTurn();
     }
 }

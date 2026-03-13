@@ -53,6 +53,13 @@ public class PlayerItemPickup : MonoBehaviour
 
     private Entity FindFirstAlivePicker()
     {
+        if (PartyAnchorService.Instance != null)
+        {
+            Entity leader = PartyAnchorService.Instance.GetLeader();
+            if (leader != null && leader.team == pickerTeam && !leader.IsDead)
+                return leader;
+        }
+
         Entity[] entities = FindObjectsByType<Entity>(FindObjectsSortMode.None);
 
         for (int i = 0; i < entities.Length; i++)
