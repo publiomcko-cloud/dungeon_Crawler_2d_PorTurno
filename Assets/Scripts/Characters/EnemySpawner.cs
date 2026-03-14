@@ -22,6 +22,9 @@ public class EnemySpawner : MonoBehaviour
 
     private void Start()
     {
+        if (CombatExplorationReturnData.HasPendingReturn)
+            return;
+
         SpawnEnemyGroups();
     }
 

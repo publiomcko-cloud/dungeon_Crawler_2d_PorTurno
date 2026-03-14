@@ -37,7 +37,17 @@ public class LootDropper : MonoBehaviour
             return;
 
         dropped = true;
+
+        if (ShouldSuppressWorldDrop())
+            return;
+
         TryDropLoot();
+    }
+
+    private bool ShouldSuppressWorldDrop()
+    {
+        CombatEntityRuntime combatRuntime = GetComponent<CombatEntityRuntime>();
+        return combatRuntime != null && combatRuntime.SuppressWorldDropOnDeath;
     }
 
     private void TryDropLoot()
@@ -99,5 +109,24 @@ public class LootDropper : MonoBehaviour
             GeneratedItemInstance generated = ItemGenerator.Generate(entry.generatedProfile);
             groundItem.SetupGenerated(generated);
         }
+    }
+
+    public List<LootDropEntry> GetLootTableSnapshot()
+    {
+        List<LootDropEntry> snapshot = new List<LootDropEntry>();
+
+        if (lootTable == null)
+            return snapshot;
+
+        for (int i = 0; i < lootTable.Count; i++)
+        {
+            LootDropEntry entry = lootTable[i];
+            if (entry == null)
+                continue;
+
+            snapshot.Add(entry.Clone());
+        }
+
+        return snapshot;
     }
 }

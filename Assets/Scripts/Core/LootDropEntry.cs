@@ -21,4 +21,14 @@ public class LootDropEntry
     {
         return UnityEngine.Random.value <= dropChance;
     }
+
+    public LootDropEntry Clone()
+    {
+        return new LootDropEntry
+        {
+            staticItem = staticItem,
+            generatedProfile = generatedProfile,
+            dropChance = dropChance
+        };
+    }
 }

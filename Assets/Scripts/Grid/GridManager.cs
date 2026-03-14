@@ -13,6 +13,7 @@ public class GridManager : MonoBehaviour
     [Header("Walls")]
     [SerializeField] private LayerMask wallLayer;
     [SerializeField] private float wallCheckRadius = 0.2f;
+    [SerializeField] private bool treatAnySolidColliderAsWall = true;
 
     private readonly Dictionary<Vector2Int, List<Entity>> grid = new Dictionary<Vector2Int, List<Entity>>();
 
@@ -32,7 +33,7 @@ public class GridManager : MonoBehaviour
         if (entity == null) return;
         if (IsCellBlocked(cell))
         {
-            Debug.LogWarning($"Tentativa de registrar entidade em célula bloqueada: {cell}");
+            Debug.LogWarning($"Tentativa de registrar entidade em cÃ©lula bloqueada: {cell}");
             return;
         }
 
@@ -46,7 +47,7 @@ public class GridManager : MonoBehaviour
 
         if (grid[cell].Count >= maxEntitiesPerCell)
         {
-            Debug.LogWarning($"Cell {cell} já está cheia.");
+            Debug.LogWarning($"Cell {cell} jÃ¡ estÃ¡ cheia.");
             return;
         }
 
@@ -135,8 +136,21 @@ public class GridManager : MonoBehaviour
     public bool IsCellBlocked(Vector2Int cell)
     {
         Vector2 world = GetCellCenterWorld(cell);
-        Collider2D hit = Physics2D.OverlapCircle(world, wallCheckRadius, wallLayer);
-        return hit != null;
+
+        if (HasBlockingColliderInMask(world))
+            return true;
+
+        if (!treatAnySolidColliderAsWall)
+            return false;
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(world, wallCheckRadius);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            if (IsBlockingCollider(hits[i]))
+                return true;
+        }
+
+        return false;
     }
 
     public bool HasLineOfSight(Vector2Int fromCell, Vector2Int toCell)
@@ -145,7 +159,20 @@ public class GridManager : MonoBehaviour
         Vector2 to = GetCellCenterWorld(toCell);
 
         RaycastHit2D hit = Physics2D.Linecast(from, to, wallLayer);
-        return hit.collider == null;
+        if (hit.collider != null && IsBlockingCollider(hit.collider))
+            return false;
+
+        if (!treatAnySolidColliderAsWall)
+            return true;
+
+        RaycastHit2D[] hits = Physics2D.LinecastAll(from, to);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            if (IsBlockingCollider(hits[i].collider))
+                return false;
+        }
+
+        return true;
     }
 
     public bool TryMoveGroupOrAttack(List<Entity> movers, Vector2Int targetCell)
@@ -340,6 +367,35 @@ public class GridManager : MonoBehaviour
             case 3: return center + new Vector3( slotOffset, -slotOffset, 0f);
             default: return center;
         }
+    }
+
+    private bool HasBlockingColliderInMask(Vector2 world)
+    {
+        if (wallLayer.value == 0)
+            return false;
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(world, wallCheckRadius, wallLayer);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            if (IsBlockingCollider(hits[i]))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsBlockingCollider(Collider2D collider)
+    {
+        if (collider == null || collider.isTrigger)
+            return false;
+
+        if (collider.GetComponentInParent<Entity>() != null)
+            return false;
+
+        if (collider.GetComponentInParent<GroundItem>() != null)
+            return false;
+
+        return true;
     }
 
     private void CleanupCell(Vector2Int cell)

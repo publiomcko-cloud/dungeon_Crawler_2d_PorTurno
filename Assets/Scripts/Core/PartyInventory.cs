@@ -347,6 +347,40 @@ public class PartyInventory : MonoBehaviour
         return TryEquipEntryDirectly(targetEntity, entry);
     }
 
+    public List<InventoryItemEntry> GetItemsSnapshot()
+    {
+        EnsureSize();
+
+        List<InventoryItemEntry> snapshot = new List<InventoryItemEntry>(items.Count);
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            InventoryItemEntry entry = items[i];
+            snapshot.Add(entry != null ? entry.Clone() : new InventoryItemEntry());
+        }
+
+        return snapshot;
+    }
+
+    public void RestoreItemsSnapshot(List<InventoryItemEntry> snapshot)
+    {
+        EnsureSize();
+
+        items.Clear();
+
+        if (snapshot != null)
+        {
+            for (int i = 0; i < snapshot.Count; i++)
+            {
+                InventoryItemEntry entry = snapshot[i];
+                items.Add(entry != null ? entry.Clone() : new InventoryItemEntry());
+            }
+        }
+
+        EnsureSize();
+        OnInventoryChanged?.Invoke();
+    }
+
     private void EnsureSize()
     {
         if (inventorySize < 1)

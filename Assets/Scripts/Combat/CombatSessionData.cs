@@ -5,43 +5,99 @@ using UnityEngine.SceneManagement;
 
 public static class CombatSessionData
 {
-    public sealed class CombatParticipantSnapshot
+    public class EntityStateSnapshot
     {
+        public string CombatantId { get; private set; }
         public string EntityName { get; private set; }
         public Team Team { get; private set; }
-        public Vector2Int ExplorationCell { get; private set; }
+        public Vector2Int Cell { get; private set; }
         public int CurrentHP { get; private set; }
-        public int MaxHP { get; private set; }
-        public int Attack { get; private set; }
-        public int Defense { get; private set; }
-        public int ActionPoints { get; private set; }
+        public int CurrentXP { get; private set; }
+        public int UnspentStatPoints { get; private set; }
         public int Level { get; private set; }
+        public StatBlock BaseStats { get; private set; }
+        public StatBlock PointBonus { get; private set; }
+        public InventoryItemEntry EquippedWeapon { get; private set; }
+        public InventoryItemEntry EquippedArmor { get; private set; }
+        public InventoryItemEntry EquippedAccessory { get; private set; }
 
-        public CombatParticipantSnapshot(Entity entity)
+        public EntityStateSnapshot(Entity entity)
         {
             if (entity == null)
             {
+                CombatantId = "";
                 EntityName = "Missing";
                 Team = Team.Player;
-                ExplorationCell = Vector2Int.zero;
+                Cell = Vector2Int.zero;
                 CurrentHP = 0;
-                MaxHP = 0;
-                Attack = 0;
-                Defense = 0;
-                ActionPoints = 0;
+                CurrentXP = 0;
+                UnspentStatPoints = 0;
                 Level = 1;
+                BaseStats = new StatBlock();
+                PointBonus = new StatBlock();
                 return;
             }
 
+            CharacterStats stats = entity.GetStatsComponent();
+
+            CombatantId = entity.GetInstanceID().ToString();
             EntityName = entity.name;
             Team = entity.team;
-            ExplorationCell = entity.GridPosition;
+            Cell = entity.GridPosition;
             CurrentHP = entity.CurrentHP;
-            MaxHP = entity.maxHP;
-            Attack = entity.attackDamage;
-            Defense = entity.defense;
-            ActionPoints = entity.actionPoints;
+            CurrentXP = entity.CurrentXP;
+            UnspentStatPoints = entity.UnspentStatPoints;
             Level = entity.Level;
+            BaseStats = stats != null && stats.BaseStats != null ? stats.BaseStats.Clone() : new StatBlock();
+            PointBonus = stats != null && stats.PointBonus != null ? stats.PointBonus.Clone() : new StatBlock();
+            EquippedWeapon = CreateEquipmentEntry(entity, EquipmentSlotType.Weapon);
+            EquippedArmor = CreateEquipmentEntry(entity, EquipmentSlotType.Armor);
+            EquippedAccessory = CreateEquipmentEntry(entity, EquipmentSlotType.Accessory);
+        }
+
+        private static InventoryItemEntry CreateEquipmentEntry(Entity entity, EquipmentSlotType slotType)
+        {
+            EquipmentSlots equipmentSlots = entity != null ? entity.GetEquipmentSlots() : null;
+            if (equipmentSlots == null)
+                return null;
+
+            ItemData staticItem = equipmentSlots.GetItemInSlot(slotType);
+            if (staticItem != null)
+                return InventoryItemEntry.FromStatic(staticItem);
+
+            GeneratedItemInstance generatedItem = equipmentSlots.GetGeneratedItemInSlot(slotType);
+            if (generatedItem != null)
+                return InventoryItemEntry.FromGenerated(generatedItem);
+
+            return null;
+        }
+    }
+
+    public sealed class EnemyExplorationSnapshot : EntityStateSnapshot
+    {
+        public EnemyExplorationSnapshot(Entity entity) : base(entity)
+        {
+        }
+    }
+
+    public sealed class CombatParticipantSnapshot : EntityStateSnapshot
+    {
+        public Vector2Int ExplorationCell { get; private set; }
+        public IReadOnlyList<LootDropEntry> LootTable { get; private set; }
+
+        public CombatParticipantSnapshot(Entity entity) : base(entity)
+        {
+            ExplorationCell = entity != null ? entity.GridPosition : Vector2Int.zero;
+            LootTable = CreateLootTableSnapshot(entity);
+        }
+
+        private static List<LootDropEntry> CreateLootTableSnapshot(Entity entity)
+        {
+            LootDropper lootDropper = entity != null ? entity.GetComponent<LootDropper>() : null;
+            if (lootDropper == null)
+                return new List<LootDropEntry>();
+
+            return lootDropper.GetLootTableSnapshot();
         }
     }
 
@@ -54,6 +110,8 @@ public static class CombatSessionData
         public Vector2Int DefenderCell { get; private set; }
         public IReadOnlyList<CombatParticipantSnapshot> Attackers { get; private set; }
         public IReadOnlyList<CombatParticipantSnapshot> Defenders { get; private set; }
+        public IReadOnlyList<EnemyExplorationSnapshot> PreservedExplorationEnemies { get; private set; }
+        public IReadOnlyList<InventoryItemEntry> PartyInventoryItems { get; private set; }
 
         public CombatSessionSnapshot(
             string explorationSceneName,
@@ -62,7 +120,9 @@ public static class CombatSessionData
             Vector2Int attackerCell,
             Vector2Int defenderCell,
             List<CombatParticipantSnapshot> attackers,
-            List<CombatParticipantSnapshot> defenders)
+            List<CombatParticipantSnapshot> defenders,
+            List<EnemyExplorationSnapshot> preservedExplorationEnemies,
+            List<InventoryItemEntry> partyInventoryItems)
         {
             ExplorationSceneName = explorationSceneName;
             CombatSceneName = combatSceneName;
@@ -71,6 +131,8 @@ public static class CombatSessionData
             DefenderCell = defenderCell;
             Attackers = attackers;
             Defenders = defenders;
+            PreservedExplorationEnemies = preservedExplorationEnemies;
+            PartyInventoryItems = partyInventoryItems;
         }
     }
 
@@ -87,8 +149,10 @@ public static class CombatSessionData
     {
         string explorationSceneName = SceneManager.GetActiveScene().name;
 
-        List<CombatParticipantSnapshot> attackerSnapshots = CreateSnapshots(attackers);
-        List<CombatParticipantSnapshot> defenderSnapshots = CreateSnapshots(defenders);
+        List<CombatParticipantSnapshot> attackerSnapshots = CreateParticipantSnapshots(attackers);
+        List<CombatParticipantSnapshot> defenderSnapshots = CreateParticipantSnapshots(defenders);
+        List<EnemyExplorationSnapshot> preservedExplorationEnemies = CreatePreservedEnemySnapshots(attackerSnapshots, defenderSnapshots);
+        List<InventoryItemEntry> partyInventoryItems = CreatePartyInventorySnapshot();
 
         CurrentSession = new CombatSessionSnapshot(
             explorationSceneName,
@@ -97,7 +161,9 @@ public static class CombatSessionData
             attackerCell,
             defenderCell,
             attackerSnapshots,
-            defenderSnapshots);
+            defenderSnapshots,
+            preservedExplorationEnemies,
+            partyInventoryItems);
 
         return CurrentSession;
     }
@@ -107,7 +173,7 @@ public static class CombatSessionData
         CurrentSession = null;
     }
 
-    private static List<CombatParticipantSnapshot> CreateSnapshots(List<Entity> entities)
+    private static List<CombatParticipantSnapshot> CreateParticipantSnapshots(List<Entity> entities)
     {
         if (entities == null)
             return new List<CombatParticipantSnapshot>();
@@ -117,5 +183,32 @@ public static class CombatSessionData
             .OrderBy(entity => entity.name)
             .Select(entity => new CombatParticipantSnapshot(entity))
             .ToList();
+    }
+
+    private static List<EnemyExplorationSnapshot> CreatePreservedEnemySnapshots(
+        List<CombatParticipantSnapshot> attackers,
+        List<CombatParticipantSnapshot> defenders)
+    {
+        HashSet<string> engagedEnemyIds = new HashSet<string>(
+            attackers.Where(snapshot => snapshot.Team == Team.Enemy).Select(snapshot => snapshot.CombatantId)
+            .Concat(defenders.Where(snapshot => snapshot.Team == Team.Enemy).Select(snapshot => snapshot.CombatantId)));
+
+        Entity[] entities = Object.FindObjectsByType<Entity>(FindObjectsSortMode.None);
+
+        return entities
+            .Where(entity => entity != null && !entity.IsDead && entity.team == Team.Enemy)
+            .Where(entity => !engagedEnemyIds.Contains(entity.GetInstanceID().ToString()))
+            .OrderBy(entity => entity.name)
+            .Select(entity => new EnemyExplorationSnapshot(entity))
+            .ToList();
+    }
+
+    private static List<InventoryItemEntry> CreatePartyInventorySnapshot()
+    {
+        PartyInventory partyInventory = Object.FindFirstObjectByType<PartyInventory>();
+        if (partyInventory == null)
+            return new List<InventoryItemEntry>();
+
+        return partyInventory.GetItemsSnapshot();
     }
 }
