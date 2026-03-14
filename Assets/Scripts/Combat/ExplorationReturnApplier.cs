@@ -11,6 +11,7 @@ public class ExplorationReturnApplier : MonoBehaviour
     [SerializeField] private PartyAnchorService partyAnchorService;
     [SerializeField] private PartyInventory partyInventory;
     [SerializeField] private EnemySpawner enemySpawner;
+    [SerializeField] private GameObject playerPartyMemberPrefab;
 
     [Header("Loot")]
     [SerializeField] private GameObject groundItemPrefab;
@@ -139,26 +140,110 @@ public class ExplorationReturnApplier : MonoBehaviour
         Dictionary<string, CombatExplorationReturnData.PlayerReturnSnapshot> survivorsByName =
             pending.PlayerSurvivors.ToDictionary(snapshot => snapshot.OriginalEntityName, snapshot => snapshot);
 
+        Dictionary<string, Entity> playersByName = new Dictionary<string, Entity>();
         for (int i = 0; i < scenePlayers.Count; i++)
         {
             Entity player = scenePlayers[i];
-            if (!survivorsByName.TryGetValue(player.name, out CombatExplorationReturnData.PlayerReturnSnapshot snapshot))
-            {
-                if (gridManager != null)
-                    gridManager.RemoveEntity(player);
-
-                Destroy(player.gameObject);
+            if (player == null)
                 continue;
+
+            if (!playersByName.ContainsKey(player.name))
+                playersByName.Add(player.name, player);
+        }
+
+        GameObject playerTemplate = ResolvePlayerTemplate(scenePlayers);
+
+        for (int i = 0; i < pending.PlayerSurvivors.Count; i++)
+        {
+            CombatExplorationReturnData.PlayerReturnSnapshot snapshot = pending.PlayerSurvivors[i];
+            if (snapshot == null)
+                continue;
+
+            Entity player;
+            if (!playersByName.TryGetValue(snapshot.OriginalEntityName, out player) || player == null)
+            {
+                player = CreatePlayerFromSnapshot(snapshot, playerTemplate, pending.ReturnCell);
+                if (player == null)
+                    continue;
             }
 
             ApplyEntitySnapshot(player, snapshot, pending.ReturnCell);
             result.Add(player);
         }
 
+        for (int i = 0; i < scenePlayers.Count; i++)
+        {
+            Entity player = scenePlayers[i];
+            if (player == null || result.Contains(player))
+                continue;
+
+            if (!survivorsByName.ContainsKey(player.name))
+            {
+                if (gridManager != null)
+                    gridManager.RemoveEntity(player);
+
+                Destroy(player.gameObject);
+            }
+        }
+
         if (partyAnchorService != null)
+        {
+            Entity leader = result.FirstOrDefault(entity => entity != null && entity.team == Team.Player);
+            partyAnchorService.SetExplicitLeader(leader);
             partyAnchorService.RefreshLeader();
+        }
 
         return result;
+    }
+
+    private GameObject ResolvePlayerTemplate(List<Entity> scenePlayers)
+    {
+        if (playerPartyMemberPrefab != null)
+            return playerPartyMemberPrefab;
+
+        for (int i = 0; i < scenePlayers.Count; i++)
+        {
+            Entity player = scenePlayers[i];
+            if (player != null)
+                return player.gameObject;
+        }
+
+        return null;
+    }
+
+    private Entity CreatePlayerFromSnapshot(
+        CombatExplorationReturnData.PlayerReturnSnapshot snapshot,
+        GameObject playerTemplate,
+        Vector2Int targetCell)
+    {
+        if (snapshot == null)
+            return null;
+
+        if (playerTemplate == null)
+        {
+            Debug.LogWarning(
+                $"ExplorationReturnApplier: no player prefab/template available to restore '{snapshot.OriginalEntityName}'.");
+            return null;
+        }
+
+        Vector3 spawnPosition = gridManager != null
+            ? gridManager.GetCellCenterWorld(targetCell)
+            : new Vector3(targetCell.x + 0.5f, targetCell.y + 0.5f, 0f);
+
+        GameObject instance = Instantiate(playerTemplate, spawnPosition, Quaternion.identity);
+        instance.name = snapshot.OriginalEntityName;
+
+        Entity entity = instance.GetComponent<Entity>();
+        if (entity == null)
+        {
+            Debug.LogWarning(
+                $"ExplorationReturnApplier: player template '{playerTemplate.name}' needs an Entity component.");
+            Destroy(instance);
+            return null;
+        }
+
+        entity.team = Team.Player;
+        return entity;
     }
 
     private void ApplyEntitySnapshot(Entity entity, CombatExplorationReturnData.EntityReturnSnapshot snapshot, Vector2Int targetCell)

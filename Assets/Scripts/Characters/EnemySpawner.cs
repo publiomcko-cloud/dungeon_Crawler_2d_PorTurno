@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class EnemySpawner : MonoBehaviour
 {
@@ -24,6 +25,13 @@ public class EnemySpawner : MonoBehaviour
     {
         if (CombatExplorationReturnData.HasPendingReturn)
             return;
+
+        string activeSceneName = SceneManager.GetActiveScene().name;
+        if (ExplorationScenePersistenceData.HasPendingTransitionToScene(activeSceneName) &&
+            ExplorationScenePersistenceData.HasSavedSceneState(activeSceneName))
+        {
+            return;
+        }
 
         SpawnEnemyGroups();
     }

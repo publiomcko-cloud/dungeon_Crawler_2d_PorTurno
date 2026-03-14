@@ -52,7 +52,13 @@ public class PlayerGridMovement : MonoBehaviour
         bool isTransitioningToCombat = CombatTransitionManager.Instance != null &&
             CombatTransitionManager.Instance.IsTransitionInProgress;
 
-        if (actionDone && !isTransitioningToCombat)
-            TurnManager.Instance.StartEnemyTurn();
+        if (!actionDone || isTransitioningToCombat)
+            return;
+
+        bool isTransitioningToAnotherScene = ScenePortal.TryTriggerPortalAtCell(targetCell);
+        if (isTransitioningToAnotherScene)
+            return;
+
+        TurnManager.Instance.StartEnemyTurn();
     }
 }

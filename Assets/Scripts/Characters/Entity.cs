@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(CharacterStats))]
 public class Entity : MonoBehaviour
@@ -92,6 +93,9 @@ public class Entity : MonoBehaviour
 
         if (stats != null)
             stats.Initialize();
+
+        if (ShouldSkipAutoRegistration())
+            return;
 
         Vector2Int startCell = new Vector2Int(
             Mathf.FloorToInt(transform.position.x),
@@ -296,6 +300,15 @@ public class Entity : MonoBehaviour
             if (receiver != null && !receiver.IsDead)
                 receiver.AddXP(xpReward);
         }
+    }
+
+    private bool ShouldSkipAutoRegistration()
+    {
+        if (team != Team.Player)
+            return false;
+
+        string activeSceneName = SceneManager.GetActiveScene().name;
+        return ExplorationScenePersistenceData.ShouldSuppressPlayerAutoRegistration(activeSceneName);
     }
 
     private void HandleHealthChanged(int currentHP, int maxHPValue)
