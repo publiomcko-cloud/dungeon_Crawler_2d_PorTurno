@@ -306,8 +306,9 @@ MonoBehaviour:
     crit: 0
   level: 1
   currentXP: 0
-  baseXPToNextLevel: 100
-  xpGrowthPerLevel: 5
+  baseXPToNextLevel: 10
+  xpGrowthPercentPerLevel: 12
+  maxLevel: 100
   statPointsPerLevel: 3
   hpPerLevel: 2
   atkPerLevel: 1

@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [RequireComponent(typeof(Entity))]
 public class CharacterStats : MonoBehaviour
@@ -15,7 +16,9 @@ public class CharacterStats : MonoBehaviour
     [SerializeField] private int level = 1;
     [SerializeField] private int currentXP = 0;
     [SerializeField] private int baseXPToNextLevel = 10;
-    [SerializeField] private int xpGrowthPerLevel = 5;
+    [FormerlySerializedAs("xpGrowthFactor")]
+    [SerializeField] private float xpGrowthPercentPerLevel = 12f;
+    [SerializeField] private int maxLevel = 100;
     [SerializeField] private int statPointsPerLevel = 3;
 
     [Header("Level Bonus Per Level")]
@@ -40,6 +43,7 @@ public class CharacterStats : MonoBehaviour
 
     public int Level => level;
     public int CurrentXP => currentXP;
+    public int MaxLevel => maxLevel;
     public int UnspentStatPoints => unspentStatPoints;
 
     public int CurrentHP { get; private set; }
@@ -79,6 +83,7 @@ public class CharacterStats : MonoBehaviour
             return;
 
         SanitizeReferences();
+        NormalizeProgressionState(false);
         RebuildLevelBonus();
 
         CurrentHP = MaxHP;
@@ -168,8 +173,12 @@ public class CharacterStats : MonoBehaviour
 
     public int GetXPToNextLevel()
     {
-        int xpNeeded = baseXPToNextLevel + (level - 1) * xpGrowthPerLevel;
-        return Mathf.Max(1, xpNeeded);
+        if (level >= maxLevel)
+            return 0;
+
+        float growthFactor = 1f + (xpGrowthPercentPerLevel / 100f);
+        float geometricValue = baseXPToNextLevel * Mathf.Pow(growthFactor, Mathf.Max(0, level - 1));
+        return Mathf.Max(1, Mathf.RoundToInt(geometricValue));
     }
 
     public void AddXP(int amount)
@@ -180,31 +189,37 @@ public class CharacterStats : MonoBehaviour
         if (amount <= 0)
             return;
 
-        currentXP += amount;
-
-        bool leveledUp = false;
-
-        while (currentXP >= GetXPToNextLevel())
+        if (level >= maxLevel)
         {
-            currentXP -= GetXPToNextLevel();
-            LevelUp();
-            leveledUp = true;
+            currentXP = 0;
+            OnXPChanged?.Invoke(currentXP, GetXPToNextLevel());
+            return;
         }
 
-        if (!leveledUp)
-            OnXPChanged?.Invoke(currentXP, GetXPToNextLevel());
+        currentXP += amount;
+        NormalizeProgressionState(true);
+        OnXPChanged?.Invoke(currentXP, GetXPToNextLevel());
     }
 
-    private void LevelUp()
+    private void LevelUp(bool invokeEvents)
     {
+        if (level >= maxLevel)
+        {
+            currentXP = 0;
+            return;
+        }
+
         level += 1;
         unspentStatPoints += statPointsPerLevel;
 
         RebuildLevelBonus();
         RecalculateStats(true);
 
-        OnLevelUp?.Invoke(level);
-        OnXPChanged?.Invoke(currentXP, GetXPToNextLevel());
+        if (invokeEvents)
+            OnLevelUp?.Invoke(level);
+
+        if (level >= maxLevel)
+            currentXP = 0;
     }
 
     private void RebuildLevelBonus()
@@ -345,6 +360,7 @@ public class CharacterStats : MonoBehaviour
         currentXP = Mathf.Max(0, newXP);
         unspentStatPoints = Mathf.Max(0, newUnspentStatPoints);
 
+        NormalizeProgressionState(false);
         RebuildLevelBonus();
         RecalculateStats(true);
         OnXPChanged?.Invoke(currentXP, GetXPToNextLevel());
@@ -353,6 +369,40 @@ public class CharacterStats : MonoBehaviour
     private void HandleEquipmentChanged()
     {
         RecalculateStats(true);
+    }
+
+    private void NormalizeProgressionState(bool invokeLevelUpEvents)
+    {
+        level = Mathf.Clamp(level, 1, maxLevel);
+
+        if (level >= maxLevel)
+        {
+            currentXP = 0;
+            return;
+        }
+
+        int safetyCounter = 0;
+        while (level < maxLevel)
+        {
+            int xpNeeded = GetXPToNextLevel();
+            if (xpNeeded <= 0 || currentXP < xpNeeded)
+                break;
+
+            currentXP -= xpNeeded;
+            LevelUp(invokeLevelUpEvents);
+
+            safetyCounter += 1;
+            if (safetyCounter > maxLevel)
+            {
+                Debug.LogWarning($"CharacterStats: normalization safety break on '{name}'.");
+                break;
+            }
+        }
+
+        if (level >= maxLevel)
+            currentXP = 0;
+        else
+            currentXP = Mathf.Max(0, currentXP);
     }
 
     private void SanitizeReferences()
@@ -365,7 +415,12 @@ public class CharacterStats : MonoBehaviour
         currentXP = Mathf.Max(0, currentXP);
         unspentStatPoints = Mathf.Max(0, unspentStatPoints);
         baseXPToNextLevel = Mathf.Max(1, baseXPToNextLevel);
-        xpGrowthPerLevel = Mathf.Max(0, xpGrowthPerLevel);
+        maxLevel = Mathf.Max(2, maxLevel);
         statPointsPerLevel = Mathf.Max(0, statPointsPerLevel);
+
+        if (xpGrowthPercentPerLevel > 0f && xpGrowthPercentPerLevel < 3f)
+            xpGrowthPercentPerLevel = Mathf.Max(1f, (xpGrowthPercentPerLevel - 1f) * 100f);
+
+        xpGrowthPercentPerLevel = Mathf.Clamp(xpGrowthPercentPerLevel, 1f, 100f);
     }
 }
