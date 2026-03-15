@@ -3,6 +3,7 @@ using UnityEngine;
 public class CombatEntityRuntime : MonoBehaviour
 {
     public string CombatantId { get; private set; }
+    public string OriginalCharacterId { get; private set; }
     public string OriginalEntityName { get; private set; }
     public Vector2Int OriginalExplorationCell { get; private set; }
     public int SpawnIndex { get; private set; }
@@ -10,12 +11,14 @@ public class CombatEntityRuntime : MonoBehaviour
 
     public void Setup(
         string combatantId,
+        string originalCharacterId,
         string originalEntityName,
         Vector2Int originalExplorationCell,
         int spawnIndex,
         bool suppressWorldDropOnDeath = true)
     {
         CombatantId = combatantId;
+        OriginalCharacterId = originalCharacterId;
         OriginalEntityName = originalEntityName;
         OriginalExplorationCell = originalExplorationCell;
         SpawnIndex = spawnIndex;

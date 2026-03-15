@@ -7,6 +7,7 @@ public static class ExplorationScenePersistenceData
 {
     public class EntityStateSnapshot
     {
+        public string CharacterId { get; private set; }
         public string EntityName { get; private set; }
         public Vector2Int Cell { get; private set; }
         public int CurrentHP { get; private set; }
@@ -23,6 +24,7 @@ public static class ExplorationScenePersistenceData
         {
             if (entity == null)
             {
+                CharacterId = "Missing";
                 EntityName = "Missing";
                 Cell = Vector2Int.zero;
                 CurrentHP = 0;
@@ -36,6 +38,7 @@ public static class ExplorationScenePersistenceData
 
             CharacterStats stats = entity.GetStatsComponent();
 
+            CharacterId = CharacterIdentity.ResolveFromEntity(entity);
             EntityName = entity.name;
             Cell = entity.GridPosition;
             CurrentHP = entity.CurrentHP;
@@ -126,7 +129,7 @@ public static class ExplorationScenePersistenceData
         public string TargetSceneName { get; private set; }
         public string SourcePortalId { get; private set; }
         public string TargetPortalId { get; private set; }
-        public string LeaderEntityName { get; private set; }
+        public string LeaderCharacterId { get; private set; }
         public List<PartyMemberSnapshot> PartyMembers { get; private set; }
         public List<InventoryItemEntry> PartyInventoryItems { get; private set; }
 
@@ -135,7 +138,7 @@ public static class ExplorationScenePersistenceData
             string targetSceneName,
             string sourcePortalId,
             string targetPortalId,
-            string leaderEntityName,
+            string leaderCharacterId,
             List<PartyMemberSnapshot> partyMembers,
             List<InventoryItemEntry> partyInventoryItems)
         {
@@ -143,7 +146,7 @@ public static class ExplorationScenePersistenceData
             TargetSceneName = targetSceneName;
             SourcePortalId = sourcePortalId;
             TargetPortalId = targetPortalId;
-            LeaderEntityName = leaderEntityName;
+            LeaderCharacterId = leaderCharacterId;
             PartyMembers = partyMembers ?? new List<PartyMemberSnapshot>();
             PartyInventoryItems = partyInventoryItems ?? new List<InventoryItemEntry>();
         }
@@ -190,16 +193,16 @@ public static class ExplorationScenePersistenceData
 
         SaveSceneState(CaptureCurrentSceneState(sourceSceneName));
 
-        string leaderEntityName = null;
+        string leaderCharacterId = null;
         if (PartyAnchorService.Instance != null && PartyAnchorService.Instance.GetLeader() != null)
-            leaderEntityName = PartyAnchorService.Instance.GetLeader().name;
+            leaderCharacterId = CharacterIdentity.ResolveFromEntity(PartyAnchorService.Instance.GetLeader());
 
         CurrentTransition = new PendingSceneTransition(
             sourceSceneName,
             targetSceneName,
             sourcePortal.PortalId,
             sourcePortal.TargetPortalId,
-            leaderEntityName,
+            leaderCharacterId,
             CapturePartyMembers(),
             CapturePartyInventory());
 

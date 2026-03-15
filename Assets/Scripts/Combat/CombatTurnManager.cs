@@ -558,11 +558,15 @@ public class CombatTurnManager : MonoBehaviour
             string originalName = runtime != null && !string.IsNullOrWhiteSpace(runtime.OriginalEntityName)
                 ? runtime.OriginalEntityName
                 : entity.name;
+            string originalCharacterId = runtime != null && !string.IsNullOrWhiteSpace(runtime.OriginalCharacterId)
+                ? runtime.OriginalCharacterId
+                : CharacterIdentity.ResolveFromEntity(entity);
             string combatantId = runtime != null && !string.IsNullOrWhiteSpace(runtime.CombatantId)
                 ? runtime.CombatantId
                 : "";
 
-            CombatSessionData.CombatParticipantSnapshot originalSnapshot = FindOriginalPlayerSnapshot(session, combatantId, originalName);
+            CombatSessionData.CombatParticipantSnapshot originalSnapshot =
+                FindOriginalPlayerSnapshot(session, combatantId, originalCharacterId, originalName);
             CombatSessionData.EntityStateSnapshot currentState = new CombatSessionData.EntityStateSnapshot(entity);
             Vector2Int returnCell = session.InitiatingTeam == Team.Player
                 ? session.DefenderCell
@@ -571,6 +575,7 @@ public class CombatTurnManager : MonoBehaviour
             survivorSnapshots.Add(new CombatExplorationReturnData.PlayerReturnSnapshot(
                 originalName,
                 combatantId,
+                originalCharacterId,
                 returnCell,
                 currentState.CurrentHP,
                 currentState.CurrentXP,
@@ -602,6 +607,7 @@ public class CombatTurnManager : MonoBehaviour
         List<CombatExplorationReturnData.EnemyReturnSnapshot> preservedEnemies = session.PreservedExplorationEnemies
             .Select(snapshot => new CombatExplorationReturnData.EnemyReturnSnapshot(
                 snapshot.CombatantId,
+                snapshot.CharacterId,
                 snapshot.EntityName,
                 snapshot.Cell,
                 snapshot.CurrentHP,
@@ -619,12 +625,16 @@ public class CombatTurnManager : MonoBehaviour
         Vector2Int finalReturnCell = session.InitiatingTeam == Team.Player
             ? session.DefenderCell
             : session.AttackerCell;
+        string leaderCharacterId = PartyAnchorService.Instance != null && PartyAnchorService.Instance.GetLeader() != null
+            ? CharacterIdentity.ResolveFromEntity(PartyAnchorService.Instance.GetLeader())
+            : null;
 
         CombatExplorationReturnData.SetPendingReturn(
             new CombatExplorationReturnData.ExplorationReturnSnapshot(
                 session.ExplorationSceneName,
                 finalReturnCell,
                 finalReturnCell,
+                leaderCharacterId,
                 defeatedEnemyCount,
                 survivorSnapshots,
                 preservedEnemies,
@@ -635,6 +645,7 @@ public class CombatTurnManager : MonoBehaviour
     private CombatSessionData.CombatParticipantSnapshot FindOriginalPlayerSnapshot(
         CombatSessionData.CombatSessionSnapshot session,
         string combatantId,
+        string characterId,
         string originalName)
     {
         CombatSessionData.CombatParticipantSnapshot snapshot = session.Attackers
@@ -643,6 +654,16 @@ public class CombatTurnManager : MonoBehaviour
                 candidate.Team == Team.Player &&
                 !string.IsNullOrWhiteSpace(combatantId) &&
                 candidate.CombatantId == combatantId);
+
+        if (snapshot != null)
+            return snapshot;
+
+        snapshot = session.Attackers
+            .Concat(session.Defenders)
+            .FirstOrDefault(candidate =>
+                candidate.Team == Team.Player &&
+                !string.IsNullOrWhiteSpace(characterId) &&
+                candidate.CharacterId == characterId);
 
         if (snapshot != null)
             return snapshot;

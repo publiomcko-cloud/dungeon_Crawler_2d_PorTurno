@@ -28,9 +28,10 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
 
     [Header("Panel Widths")]
     [SerializeField] private float selectorPanelWidth = 84f;
+    [SerializeField] private float statsPanelWidth = 190f;
     [SerializeField] private float equippedPanelWidth = 90f;
     [SerializeField] private float inventoryPanelWidth = 250f;
-    [SerializeField] private float groundPanelWidth = 250f;
+    [SerializeField] private float groundPanelWidth = 200f;
 
     [Header("Slots")]
     [SerializeField] private Vector2 slotSize = new Vector2(48f, 48f);
@@ -131,6 +132,16 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
         );
         x += selectorPanelWidth + panelSpacing;
 
+        RectTransform statsPanel = CreatePanel(
+            "StatsPanel",
+            windowRoot,
+            x,
+            contentArea.center.y,
+            statsPanelWidth,
+            contentArea.height
+        );
+        x += statsPanelWidth + panelSpacing;
+
         RectTransform equippedPanel = CreatePanel(
             "EquippedPanel",
             windowRoot,
@@ -161,6 +172,7 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
         );
 
         CreatePanelHeader("SelectorHeader", selectorPanel, "Party");
+        CreatePanelHeader("StatsHeader", statsPanel, "Stats");
         CreatePanelHeader("EquippedHeader", equippedPanel, "Equipped");
         CreatePanelHeader("InventoryHeader", inventoryPanel, "Inventory");
         CreatePanelHeader("GroundHeader", groundPanel, "Ground");
@@ -184,6 +196,26 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
         ContentSizeFitter selectorFitter = EnsureComponent<ContentSizeFitter>(selectorContent.gameObject);
         selectorFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
         selectorFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        RectTransform statsContent = CreateContentRoot(
+            "StatsContent",
+            statsPanel,
+            new Vector2(8f, 8f),
+            new Vector2(-8f, -26f)
+        );
+
+        VerticalLayoutGroup statsLayout = EnsureComponent<VerticalLayoutGroup>(statsContent.gameObject);
+        statsLayout.childAlignment = TextAnchor.UpperLeft;
+        statsLayout.childControlWidth = true;
+        statsLayout.childControlHeight = false;
+        statsLayout.childForceExpandWidth = true;
+        statsLayout.childForceExpandHeight = false;
+        statsLayout.spacing = 6f;
+        statsLayout.padding = new RectOffset(0, 0, 0, 0);
+
+        ContentSizeFitter statsFitter = EnsureComponent<ContentSizeFitter>(statsContent.gameObject);
+        statsFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        statsFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
         RectTransform equippedContent = CreateContentRoot(
             "EquippedContent",
@@ -240,6 +272,7 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
         WireController(
             closeButton,
             selectorContent,
+            statsContent,
             equippedContent,
             inventoryContent,
             groundContent,
@@ -283,6 +316,7 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
     private void WireController(
         Button closeButton,
         Transform selectorContent,
+        Transform statsContent,
         Transform equippedContent,
         Transform inventoryContent,
         Transform groundContent,
@@ -299,6 +333,7 @@ public class LootWindowGridAutoBuilder : MonoBehaviour
             windowRoot.gameObject,
             closeButton,
             selectorContent,
+            statsContent,
             equippedContent,
             inventoryContent,
             groundContent,

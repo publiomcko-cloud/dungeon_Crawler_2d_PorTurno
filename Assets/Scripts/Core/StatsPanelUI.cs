@@ -32,6 +32,7 @@ public class StatsPanelUI : MonoBehaviour
 
     [Header("Input")]
     [SerializeField] private KeyCode toggleKey = KeyCode.C;
+    [SerializeField] private bool enableStandaloneToggle = false;
     [SerializeField] private bool startHidden = true;
 
     private CharacterStats targetStats;
@@ -42,7 +43,7 @@ public class StatsPanelUI : MonoBehaviour
         if (panelRoot == null)
             panelRoot = gameObject;
 
-        isOpen = !startHidden;
+        isOpen = enableStandaloneToggle && !startHidden;
         panelRoot.SetActive(isOpen);
 
         BindButtons();
@@ -68,7 +69,7 @@ public class StatsPanelUI : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(toggleKey))
+        if (enableStandaloneToggle && Input.GetKeyDown(toggleKey))
         {
             isOpen = !isOpen;
             panelRoot.SetActive(isOpen);

@@ -3,6 +3,9 @@ using UnityEngine.SceneManagement;
 
 public class ScenePortal : MonoBehaviour
 {
+    [Header("Validation")]
+    [SerializeField] private bool enableInspectorWarnings = true;
+
     [Header("Portal Identity")]
     [SerializeField] private string portalId = "Portal_A";
 
@@ -17,6 +20,11 @@ public class ScenePortal : MonoBehaviour
     public string PortalId => portalId;
     public string TargetSceneName => targetSceneName;
     public string TargetPortalId => targetPortalId;
+
+    private void Awake()
+    {
+        ValidateInspectorConfiguration();
+    }
 
     public Vector2Int GetPortalCell()
     {
@@ -71,5 +79,20 @@ public class ScenePortal : MonoBehaviour
         }
 
         return false;
+    }
+
+    private void ValidateInspectorConfiguration()
+    {
+        if (!enableInspectorWarnings)
+            return;
+
+        if (string.IsNullOrWhiteSpace(portalId))
+            Debug.LogWarning($"ScenePortal '{name}': 'Portal Id' esta vazio.", this);
+
+        if (string.IsNullOrWhiteSpace(targetSceneName))
+            Debug.LogWarning($"ScenePortal '{name}': 'Target Scene Name' esta vazio.", this);
+
+        if (string.IsNullOrWhiteSpace(targetPortalId))
+            Debug.LogWarning($"ScenePortal '{name}': 'Target Portal Id' esta vazio.", this);
     }
 }

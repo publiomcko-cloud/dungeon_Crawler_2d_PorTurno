@@ -13,6 +13,9 @@ public class CombatGridSceneManager : MonoBehaviour
         public GameObject prefab;
     }
 
+    [Header("Validation")]
+    [SerializeField] private bool enableInspectorWarnings = true;
+
     [Header("Scene References")]
     [SerializeField] private GridManager gridManager;
     [SerializeField] private Transform spawnRoot;
@@ -38,6 +41,11 @@ public class CombatGridSceneManager : MonoBehaviour
     public bool HasBuiltCombatants { get; private set; }
 
     public event Action OnCombatantsBuilt;
+
+    private void Awake()
+    {
+        ValidateInspectorConfiguration();
+    }
 
     private void Start()
     {
@@ -211,7 +219,19 @@ public class CombatGridSceneManager : MonoBehaviour
         if (runtime == null)
             runtime = instance.AddComponent<CombatEntityRuntime>();
 
-        runtime.Setup(snapshot.CombatantId, snapshot.EntityName, snapshot.ExplorationCell, spawnIndex, true);
+        runtime.Setup(
+            snapshot.CombatantId,
+            snapshot.CharacterId,
+            snapshot.EntityName,
+            snapshot.ExplorationCell,
+            spawnIndex,
+            true);
+
+        CharacterIdentity identity = instance.GetComponent<CharacterIdentity>();
+        if (identity == null)
+            identity = instance.AddComponent<CharacterIdentity>();
+
+        identity.SetCharacterId(snapshot.CharacterId);
 
         if (instance.GetComponent<CombatTurnOutline>() == null)
             instance.AddComponent<CombatTurnOutline>();
@@ -263,5 +283,56 @@ public class CombatGridSceneManager : MonoBehaviour
 
         if (entry.IsGeneratedItem)
             entity.EquipGeneratedItem(entry.GeneratedItem);
+    }
+
+    private void ValidateInspectorConfiguration()
+    {
+        if (!enableInspectorWarnings)
+            return;
+
+        if (gridManager == null)
+            Debug.LogWarning("CombatGridSceneManager: 'Grid Manager' nao esta preenchido.", this);
+
+        if (defaultPlayerCombatPrefab == null)
+            Debug.LogWarning("CombatGridSceneManager: 'Default Player Combat Prefab' nao esta preenchido.", this);
+
+        if (defaultEnemyCombatPrefab == null)
+            Debug.LogWarning("CombatGridSceneManager: 'Default Enemy Combat Prefab' nao esta preenchido.", this);
+
+        ValidateCombatPrefab(defaultPlayerCombatPrefab, "Default Player Combat Prefab");
+        ValidateCombatPrefab(defaultEnemyCombatPrefab, "Default Enemy Combat Prefab");
+
+        for (int i = 0; i < prefabOverrides.Count; i++)
+        {
+            CombatPrefabOverride prefabOverride = prefabOverrides[i];
+            if (prefabOverride == null)
+            {
+                Debug.LogWarning($"CombatGridSceneManager: prefab override {i} esta nulo.", this);
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(prefabOverride.entityName))
+                Debug.LogWarning($"CombatGridSceneManager: prefab override {i} esta sem entityName.", this);
+
+            if (prefabOverride.prefab == null)
+            {
+                Debug.LogWarning($"CombatGridSceneManager: prefab override '{prefabOverride.entityName}' esta sem prefab.", this);
+                continue;
+            }
+
+            ValidateCombatPrefab(prefabOverride.prefab, $"Prefab Override '{prefabOverride.entityName}'");
+        }
+    }
+
+    private void ValidateCombatPrefab(GameObject prefab, string label)
+    {
+        if (prefab == null)
+            return;
+
+        if (prefab.GetComponent<Entity>() == null)
+            Debug.LogWarning($"CombatGridSceneManager: {label} '{prefab.name}' nao possui Entity.", this);
+
+        if (prefab.GetComponent<CharacterStats>() == null)
+            Debug.LogWarning($"CombatGridSceneManager: {label} '{prefab.name}' nao possui CharacterStats.", this);
     }
 }

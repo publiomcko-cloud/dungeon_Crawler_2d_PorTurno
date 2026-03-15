@@ -8,6 +8,7 @@ public static class CombatSessionData
     public class EntityStateSnapshot
     {
         public string CombatantId { get; private set; }
+        public string CharacterId { get; private set; }
         public string EntityName { get; private set; }
         public Team Team { get; private set; }
         public Vector2Int Cell { get; private set; }
@@ -26,6 +27,7 @@ public static class CombatSessionData
             if (entity == null)
             {
                 CombatantId = "";
+                CharacterId = "Missing";
                 EntityName = "Missing";
                 Team = Team.Player;
                 Cell = Vector2Int.zero;
@@ -41,6 +43,7 @@ public static class CombatSessionData
             CharacterStats stats = entity.GetStatsComponent();
 
             CombatantId = entity.GetInstanceID().ToString();
+            CharacterId = CharacterIdentity.ResolveFromEntity(entity);
             EntityName = entity.name;
             Team = entity.team;
             Cell = entity.GridPosition;

@@ -307,6 +307,9 @@ public class Entity : MonoBehaviour
         if (team != Team.Player)
             return false;
 
+        if (CombatExplorationReturnData.HasPendingReturn)
+            return true;
+
         string activeSceneName = SceneManager.GetActiveScene().name;
         return ExplorationScenePersistenceData.ShouldSuppressPlayerAutoRegistration(activeSceneName);
     }

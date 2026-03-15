@@ -6,6 +6,7 @@ public static class CombatExplorationReturnData
     public class EntityReturnSnapshot
     {
         public string CombatantId { get; private set; }
+        public string CharacterId { get; private set; }
         public string EntityName { get; private set; }
         public Vector2Int Cell { get; private set; }
         public int CurrentHP { get; private set; }
@@ -20,6 +21,7 @@ public static class CombatExplorationReturnData
 
         public EntityReturnSnapshot(
             string combatantId,
+            string characterId,
             string entityName,
             Vector2Int cell,
             int currentHP,
@@ -33,6 +35,7 @@ public static class CombatExplorationReturnData
             InventoryItemEntry equippedAccessory)
         {
             CombatantId = combatantId;
+            CharacterId = string.IsNullOrWhiteSpace(characterId) ? entityName : characterId;
             EntityName = entityName;
             Cell = cell;
             CurrentHP = Mathf.Max(0, currentHP);
@@ -51,6 +54,7 @@ public static class CombatExplorationReturnData
     {
         public EnemyReturnSnapshot(
             string combatantId,
+            string characterId,
             string entityName,
             Vector2Int cell,
             int currentHP,
@@ -64,6 +68,7 @@ public static class CombatExplorationReturnData
             InventoryItemEntry equippedAccessory)
             : base(
                 combatantId,
+                characterId,
                 entityName,
                 cell,
                 currentHP,
@@ -86,6 +91,7 @@ public static class CombatExplorationReturnData
         public PlayerReturnSnapshot(
             string originalEntityName,
             string combatantId,
+            string characterId,
             Vector2Int cell,
             int currentHP,
             int currentXP,
@@ -98,6 +104,7 @@ public static class CombatExplorationReturnData
             InventoryItemEntry equippedAccessory)
             : base(
                 combatantId,
+                characterId,
                 originalEntityName,
                 cell,
                 currentHP,
@@ -119,6 +126,7 @@ public static class CombatExplorationReturnData
         public string ExplorationSceneName { get; private set; }
         public Vector2Int ReturnCell { get; private set; }
         public Vector2Int LootCell { get; private set; }
+        public string LeaderCharacterId { get; private set; }
         public int DefeatedEnemyCount { get; private set; }
         public List<PlayerReturnSnapshot> PlayerSurvivors { get; private set; }
         public List<EnemyReturnSnapshot> PreservedEnemies { get; private set; }
@@ -129,6 +137,7 @@ public static class CombatExplorationReturnData
             string explorationSceneName,
             Vector2Int returnCell,
             Vector2Int lootCell,
+            string leaderCharacterId,
             int defeatedEnemyCount,
             List<PlayerReturnSnapshot> playerSurvivors,
             List<EnemyReturnSnapshot> preservedEnemies,
@@ -138,6 +147,7 @@ public static class CombatExplorationReturnData
             ExplorationSceneName = explorationSceneName;
             ReturnCell = returnCell;
             LootCell = lootCell;
+            LeaderCharacterId = leaderCharacterId;
             DefeatedEnemyCount = Mathf.Max(0, defeatedEnemyCount);
             PlayerSurvivors = playerSurvivors ?? new List<PlayerReturnSnapshot>();
             PreservedEnemies = preservedEnemies ?? new List<EnemyReturnSnapshot>();

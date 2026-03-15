@@ -23,7 +23,7 @@ GameObject:
   - component: {fileID: -8105680847138865417}
   - component: {fileID: 6643238001437382197}
   m_Layer: 7
-  m_Name: Player
+  m_Name: Player 1
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -398,7 +398,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 310b37a0e0ae7eb4388d3d705f57bc0a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterIdentity
-  characterId: Warrior_01
+  characterId: Warrior_02
 --- !u!1 &3652057163632071213
 GameObject:
   m_ObjectHideFlags: 0

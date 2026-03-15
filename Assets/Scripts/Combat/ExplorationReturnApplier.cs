@@ -5,6 +5,9 @@ using UnityEngine;
 
 public class ExplorationReturnApplier : MonoBehaviour
 {
+    [Header("Validation")]
+    [SerializeField] private bool enableInspectorWarnings = true;
+
     [Header("Scene References")]
     [SerializeField] private GridManager gridManager;
     [SerializeField] private LootWindowUI lootWindowUI;
@@ -12,12 +15,18 @@ public class ExplorationReturnApplier : MonoBehaviour
     [SerializeField] private PartyInventory partyInventory;
     [SerializeField] private EnemySpawner enemySpawner;
     [SerializeField] private GameObject playerPartyMemberPrefab;
+    [SerializeField] private PlayerCharacterPrefabLibrary playerPrefabLibrary;
 
     [Header("Loot")]
     [SerializeField] private GameObject groundItemPrefab;
     [SerializeField] private bool autoOpenLootWindowAfterVictory = true;
 
     private bool applied;
+
+    private void Awake()
+    {
+        ValidateInspectorConfiguration();
+    }
 
     private void Start()
     {
@@ -48,6 +57,9 @@ public class ExplorationReturnApplier : MonoBehaviour
 
         if (enemySpawner == null)
             enemySpawner = FindFirstObjectByType<EnemySpawner>();
+
+        if (playerPrefabLibrary == null)
+            playerPrefabLibrary = FindFirstObjectByType<PlayerCharacterPrefabLibrary>();
 
         yield return null;
 
@@ -137,21 +149,29 @@ public class ExplorationReturnApplier : MonoBehaviour
             .OrderBy(entity => entity.name)
             .ToList();
 
-        Dictionary<string, CombatExplorationReturnData.PlayerReturnSnapshot> survivorsByName =
-            pending.PlayerSurvivors.ToDictionary(snapshot => snapshot.OriginalEntityName, snapshot => snapshot);
+        Dictionary<string, CombatExplorationReturnData.PlayerReturnSnapshot> survivorsByCharacterId =
+            new Dictionary<string, CombatExplorationReturnData.PlayerReturnSnapshot>();
+        for (int i = 0; i < pending.PlayerSurvivors.Count; i++)
+        {
+            CombatExplorationReturnData.PlayerReturnSnapshot snapshot = pending.PlayerSurvivors[i];
+            if (snapshot == null || string.IsNullOrWhiteSpace(snapshot.CharacterId))
+                continue;
 
-        Dictionary<string, Entity> playersByName = new Dictionary<string, Entity>();
+            if (!survivorsByCharacterId.ContainsKey(snapshot.CharacterId))
+                survivorsByCharacterId.Add(snapshot.CharacterId, snapshot);
+        }
+
+        Dictionary<string, Entity> playersByCharacterId = new Dictionary<string, Entity>();
         for (int i = 0; i < scenePlayers.Count; i++)
         {
             Entity player = scenePlayers[i];
             if (player == null)
                 continue;
 
-            if (!playersByName.ContainsKey(player.name))
-                playersByName.Add(player.name, player);
+            string characterId = CharacterIdentity.ResolveFromEntity(player);
+            if (!playersByCharacterId.ContainsKey(characterId))
+                playersByCharacterId.Add(characterId, player);
         }
-
-        GameObject playerTemplate = ResolvePlayerTemplate(scenePlayers);
 
         for (int i = 0; i < pending.PlayerSurvivors.Count; i++)
         {
@@ -160,9 +180,9 @@ public class ExplorationReturnApplier : MonoBehaviour
                 continue;
 
             Entity player;
-            if (!playersByName.TryGetValue(snapshot.OriginalEntityName, out player) || player == null)
+            if (!playersByCharacterId.TryGetValue(snapshot.CharacterId, out player) || player == null)
             {
-                player = CreatePlayerFromSnapshot(snapshot, playerTemplate, pending.ReturnCell);
+                player = CreatePlayerFromSnapshot(snapshot, scenePlayers, pending.ReturnCell);
                 if (player == null)
                     continue;
             }
@@ -177,7 +197,8 @@ public class ExplorationReturnApplier : MonoBehaviour
             if (player == null || result.Contains(player))
                 continue;
 
-            if (!survivorsByName.ContainsKey(player.name))
+            string characterId = CharacterIdentity.ResolveFromEntity(player);
+            if (!survivorsByCharacterId.ContainsKey(characterId))
             {
                 if (gridManager != null)
                     gridManager.RemoveEntity(player);
@@ -188,7 +209,14 @@ public class ExplorationReturnApplier : MonoBehaviour
 
         if (partyAnchorService != null)
         {
-            Entity leader = result.FirstOrDefault(entity => entity != null && entity.team == Team.Player);
+            Entity leader = result.FirstOrDefault(entity =>
+                entity != null &&
+                entity.team == Team.Player &&
+                CharacterIdentity.ResolveFromEntity(entity) == pending.LeaderCharacterId);
+
+            if (leader == null)
+                leader = result.FirstOrDefault(entity => entity != null && entity.team == Team.Player);
+
             partyAnchorService.SetExplicitLeader(leader);
             partyAnchorService.RefreshLeader();
         }
@@ -196,8 +224,15 @@ public class ExplorationReturnApplier : MonoBehaviour
         return result;
     }
 
-    private GameObject ResolvePlayerTemplate(List<Entity> scenePlayers)
+    private GameObject ResolvePlayerTemplate(string characterId, List<Entity> scenePlayers)
     {
+        if (playerPrefabLibrary != null)
+        {
+            GameObject resolvedPrefab = playerPrefabLibrary.ResolvePrefab(characterId);
+            if (resolvedPrefab != null)
+                return resolvedPrefab;
+        }
+
         if (playerPartyMemberPrefab != null)
             return playerPartyMemberPrefab;
 
@@ -213,16 +248,18 @@ public class ExplorationReturnApplier : MonoBehaviour
 
     private Entity CreatePlayerFromSnapshot(
         CombatExplorationReturnData.PlayerReturnSnapshot snapshot,
-        GameObject playerTemplate,
+        List<Entity> scenePlayers,
         Vector2Int targetCell)
     {
         if (snapshot == null)
             return null;
 
+        GameObject playerTemplate = ResolvePlayerTemplate(snapshot.CharacterId, scenePlayers);
+
         if (playerTemplate == null)
         {
             Debug.LogWarning(
-                $"ExplorationReturnApplier: no player prefab/template available to restore '{snapshot.OriginalEntityName}'.");
+                $"ExplorationReturnApplier: no player prefab/template available to restore '{snapshot.CharacterId}'.");
             return null;
         }
 
@@ -243,6 +280,11 @@ public class ExplorationReturnApplier : MonoBehaviour
         }
 
         entity.team = Team.Player;
+        CharacterIdentity identity = instance.GetComponent<CharacterIdentity>();
+        if (identity == null)
+            identity = instance.AddComponent<CharacterIdentity>();
+
+        identity.SetCharacterId(snapshot.CharacterId);
         return entity;
     }
 
@@ -250,6 +292,14 @@ public class ExplorationReturnApplier : MonoBehaviour
     {
         if (entity == null || snapshot == null)
             return;
+
+        entity.name = snapshot.EntityName;
+
+        CharacterIdentity identity = entity.GetComponent<CharacterIdentity>();
+        if (identity == null)
+            identity = entity.gameObject.AddComponent<CharacterIdentity>();
+
+        identity.SetCharacterId(snapshot.CharacterId);
 
         CharacterStats stats = entity.GetStatsComponent();
         EquipmentSlots equipmentSlots = entity.GetEquipmentSlots();
@@ -359,5 +409,49 @@ public class ExplorationReturnApplier : MonoBehaviour
             return;
 
         lootWindowUI.OpenForCell(target, pending.LootCell);
+    }
+
+    private void ValidateInspectorConfiguration()
+    {
+        if (!enableInspectorWarnings)
+            return;
+
+        WarnIfMissing(gridManager, "Grid Manager");
+        WarnIfMissing(lootWindowUI, "Loot Window UI");
+        WarnIfMissing(partyAnchorService, "Party Anchor Service");
+        WarnIfMissing(partyInventory, "Party Inventory");
+        WarnIfMissing(enemySpawner, "Enemy Spawner");
+        WarnIfMissing(groundItemPrefab, "Ground Item Prefab");
+
+        if (playerPrefabLibrary == null && playerPartyMemberPrefab == null)
+        {
+            Debug.LogWarning(
+                "ExplorationReturnApplier: preencha 'Player Character Prefab Library' ou 'Player Party Member Prefab'.",
+                this);
+        }
+
+        if (playerPartyMemberPrefab != null)
+            ValidatePlayerPrefab(playerPartyMemberPrefab, "Player Party Member Prefab");
+    }
+
+    private void WarnIfMissing(Object value, string label)
+    {
+        if (value == null)
+            Debug.LogWarning($"ExplorationReturnApplier: '{label}' nao esta preenchido.", this);
+    }
+
+    private void ValidatePlayerPrefab(GameObject prefab, string label)
+    {
+        if (prefab == null)
+            return;
+
+        if (prefab.GetComponent<Entity>() == null)
+            Debug.LogWarning($"ExplorationReturnApplier: {label} '{prefab.name}' nao possui Entity.", this);
+
+        if (prefab.GetComponent<CharacterStats>() == null)
+            Debug.LogWarning($"ExplorationReturnApplier: {label} '{prefab.name}' nao possui CharacterStats.", this);
+
+        if (prefab.GetComponent<CharacterIdentity>() == null)
+            Debug.LogWarning($"ExplorationReturnApplier: {label} '{prefab.name}' nao possui CharacterIdentity.", this);
     }
 }
