@@ -20,7 +20,7 @@ public class QuestDefinition : ScriptableObject
     [Header("Reward")]
     [SerializeField] private int rewardMoney = 25;
 
-    public string QuestId => NormalizeQuestId(questId, name);
+    public string QuestId => BuildQuestKey(questId, name);
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
     public string Description => description ?? "";
     public int MinimumLeaderLevel => Mathf.Max(1, minimumLeaderLevel);
@@ -49,14 +49,14 @@ public class QuestDefinition : ScriptableObject
         return $"Alvo: {enemyLabel} | Nivel minimo do alvo: {MinimumEnemyLevel}";
     }
 
-    private static string NormalizeQuestId(string value, string fallback)
+    private static string BuildQuestKey(string rawQuestId, string assetName)
     {
-        if (!string.IsNullOrWhiteSpace(value))
-            return value.Trim();
+        string sanitizedAssetName = string.IsNullOrWhiteSpace(assetName) ? "unnamed_quest" : assetName.Trim();
+        string sanitizedQuestId = string.IsNullOrWhiteSpace(rawQuestId) ? "" : rawQuestId.Trim();
 
-        if (!string.IsNullOrWhiteSpace(fallback))
-            return fallback.Trim();
+        if (string.IsNullOrWhiteSpace(sanitizedQuestId) || sanitizedQuestId == "quest_001")
+            return sanitizedAssetName;
 
-        return "unknown_quest";
+        return $"{sanitizedQuestId}::{sanitizedAssetName}";
     }
 }

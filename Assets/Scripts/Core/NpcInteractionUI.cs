@@ -102,6 +102,7 @@ public class NpcInteractionUI : MonoBehaviour
 
     [Header("Window Style")]
     [SerializeField] private Vector2 windowSize = new Vector2(760f, 430f);
+    [SerializeField] private Vector2 windowScreenOccupancy = new Vector2(0.8f, 0.8f);
     [SerializeField] private Color windowBackgroundColor = new Color(0.08f, 0.08f, 0.08f, 0.97f);
     [SerializeField] private int canvasSortingOrder = 500;
 
@@ -284,6 +285,7 @@ public class NpcInteractionUI : MonoBehaviour
 
     private void RefreshMerchantMode()
     {
+        ClearSpawnedButtons();
         SetMerchantAreaVisible(true);
         SetQuestAreaVisible(false);
         SetButtonVisible(confirmButton, false);
@@ -763,9 +765,16 @@ public class NpcInteractionUI : MonoBehaviour
         root.transform.SetParent(parent, false);
 
         RectTransform rootRect = root.GetComponent<RectTransform>();
-        rootRect.anchorMin = new Vector2(0.5f, 0.5f);
-        rootRect.anchorMax = new Vector2(0.5f, 0.5f);
+        float widthRatio = Mathf.Clamp01(windowScreenOccupancy.x);
+        float heightRatio = Mathf.Clamp01(windowScreenOccupancy.y);
+        float horizontalMargin = (1f - widthRatio) * 0.5f;
+        float verticalMargin = (1f - heightRatio) * 0.5f;
+
+        rootRect.anchorMin = new Vector2(horizontalMargin, verticalMargin);
+        rootRect.anchorMax = new Vector2(1f - horizontalMargin, 1f - verticalMargin);
         rootRect.pivot = new Vector2(0.5f, 0.5f);
+        rootRect.offsetMin = Vector2.zero;
+        rootRect.offsetMax = Vector2.zero;
         rootRect.sizeDelta = windowSize;
 
         ApplyImageStyle(root.GetComponent<Image>(), windowBackgroundColor);
