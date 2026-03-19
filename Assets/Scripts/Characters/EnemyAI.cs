@@ -8,12 +8,20 @@ public class EnemyAI : MonoBehaviour
     [Header("Turn Timing")]
     public float delayBetweenEnemyGroups = 0.15f;
 
+    [Header("Exploration")]
+    [SerializeField] private bool keepEnemiesStaticInExploration = true;
+    [SerializeField] private bool allowAdjacentCombatTrigger = true;
+    [SerializeField] private bool useOnlyOrthogonalAdjacency = true;
+
     [Header("Vision")]
     public int maxVisionRange = 6;
     public bool requireLineOfSight = true;
 
     public IEnumerator ExecuteEnemyTurn()
     {
+        if (keepEnemiesStaticInExploration)
+            yield break;
+
         List<Vector2Int> enemyCells = GridManager.Instance.GetOccupiedCellsByTeam(Team.Enemy);
 
         foreach (Vector2Int enemyCell in enemyCells)
@@ -53,6 +61,83 @@ public class EnemyAI : MonoBehaviour
 
             yield return new WaitForSeconds(delayBetweenEnemyGroups);
         }
+    }
+
+    public bool TryTriggerAdjacentCombat(List<Entity> defendingParty, Vector2Int partyCell)
+    {
+        if (!allowAdjacentCombatTrigger || GridManager.Instance == null || CombatTransitionManager.Instance == null)
+            return false;
+
+        List<Entity> validDefenders = defendingParty != null
+            ? defendingParty.Where(entity => entity != null && !entity.IsDead && entity.team == Team.Player).ToList()
+            : new List<Entity>();
+
+        if (validDefenders.Count == 0)
+            return false;
+
+        List<Vector2Int> adjacentCells = GetAdjacentCells(partyCell);
+        for (int i = 0; i < adjacentCells.Count; i++)
+        {
+            Vector2Int enemyCell = adjacentCells[i];
+            List<Entity> enemiesInCell = GridManager.Instance.GetEntitiesAtCell(enemyCell)
+                .Where(entity => entity != null && !entity.IsDead && entity.team == Team.Enemy)
+                .ToList();
+
+            if (enemiesInCell.Count == 0 || !ShouldTriggerCombat(enemiesInCell))
+                continue;
+
+            if (CombatTransitionManager.Instance.TryStartCombatTransition(
+                enemiesInCell,
+                validDefenders,
+                enemyCell,
+                partyCell,
+                Team.Enemy))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool ShouldTriggerCombat(List<Entity> enemiesInCell)
+    {
+        float highestChance = 0f;
+
+        for (int i = 0; i < enemiesInCell.Count; i++)
+        {
+            Entity enemy = enemiesInCell[i];
+            if (enemy == null || enemy.IsDead)
+                continue;
+
+            highestChance = Mathf.Max(highestChance, enemy.AdjacentCombatTriggerChance);
+        }
+
+        if (highestChance <= 0f)
+            return false;
+
+        return Random.value <= highestChance;
+    }
+
+    private List<Vector2Int> GetAdjacentCells(Vector2Int origin)
+    {
+        List<Vector2Int> result = new List<Vector2Int>
+        {
+            origin + Vector2Int.up,
+            origin + Vector2Int.right,
+            origin + Vector2Int.down,
+            origin + Vector2Int.left
+        };
+
+        if (!useOnlyOrthogonalAdjacency)
+        {
+            result.Add(origin + new Vector2Int(1, 1));
+            result.Add(origin + new Vector2Int(1, -1));
+            result.Add(origin + new Vector2Int(-1, -1));
+            result.Add(origin + new Vector2Int(-1, 1));
+        }
+
+        return result;
     }
 
     private Vector2Int? GetVisibleNearestPlayerCell(Vector2Int enemyCell, List<Vector2Int> playerCells)

@@ -13,6 +13,9 @@ public static class CombatExplorationReturnData
         public int CurrentXP { get; private set; }
         public int UnspentStatPoints { get; private set; }
         public int Level { get; private set; }
+        public int MoneyReward { get; private set; }
+        public string QuestEnemyId { get; private set; }
+        public string EnemyPrefabId { get; private set; }
         public StatBlock BaseStats { get; private set; }
         public StatBlock PointBonus { get; private set; }
         public InventoryItemEntry EquippedWeapon { get; private set; }
@@ -28,6 +31,9 @@ public static class CombatExplorationReturnData
             int currentXP,
             int unspentStatPoints,
             int level,
+            int moneyReward,
+            string questEnemyId,
+            string enemyPrefabId,
             StatBlock baseStats,
             StatBlock pointBonus,
             InventoryItemEntry equippedWeapon,
@@ -42,6 +48,9 @@ public static class CombatExplorationReturnData
             CurrentXP = Mathf.Max(0, currentXP);
             UnspentStatPoints = Mathf.Max(0, unspentStatPoints);
             Level = Mathf.Max(1, level);
+            MoneyReward = Mathf.Max(0, moneyReward);
+            QuestEnemyId = string.IsNullOrWhiteSpace(questEnemyId) ? "" : questEnemyId.Trim();
+            EnemyPrefabId = string.IsNullOrWhiteSpace(enemyPrefabId) ? "" : enemyPrefabId.Trim();
             BaseStats = baseStats != null ? baseStats.Clone() : new StatBlock();
             PointBonus = pointBonus != null ? pointBonus.Clone() : new StatBlock();
             EquippedWeapon = equippedWeapon != null ? equippedWeapon.Clone() : null;
@@ -61,6 +70,9 @@ public static class CombatExplorationReturnData
             int currentXP,
             int unspentStatPoints,
             int level,
+            int moneyReward,
+            string questEnemyId,
+            string enemyPrefabId,
             StatBlock baseStats,
             StatBlock pointBonus,
             InventoryItemEntry equippedWeapon,
@@ -75,6 +87,9 @@ public static class CombatExplorationReturnData
                 currentXP,
                 unspentStatPoints,
                 level,
+                moneyReward,
+                questEnemyId,
+                enemyPrefabId,
                 baseStats,
                 pointBonus,
                 equippedWeapon,
@@ -97,6 +112,9 @@ public static class CombatExplorationReturnData
             int currentXP,
             int unspentStatPoints,
             int level,
+            int moneyReward,
+            string questEnemyId,
+            string enemyPrefabId,
             StatBlock baseStats,
             StatBlock pointBonus,
             InventoryItemEntry equippedWeapon,
@@ -111,6 +129,9 @@ public static class CombatExplorationReturnData
                 currentXP,
                 unspentStatPoints,
                 level,
+                moneyReward,
+                questEnemyId,
+                enemyPrefabId,
                 baseStats,
                 pointBonus,
                 equippedWeapon,
@@ -128,6 +149,7 @@ public static class CombatExplorationReturnData
         public Vector2Int LootCell { get; private set; }
         public string LeaderCharacterId { get; private set; }
         public int DefeatedEnemyCount { get; private set; }
+        public int RewardMoney { get; private set; }
         public List<PlayerReturnSnapshot> PlayerSurvivors { get; private set; }
         public List<EnemyReturnSnapshot> PreservedEnemies { get; private set; }
         public List<InventoryItemEntry> LootEntries { get; private set; }
@@ -139,6 +161,7 @@ public static class CombatExplorationReturnData
             Vector2Int lootCell,
             string leaderCharacterId,
             int defeatedEnemyCount,
+            int rewardMoney,
             List<PlayerReturnSnapshot> playerSurvivors,
             List<EnemyReturnSnapshot> preservedEnemies,
             List<InventoryItemEntry> lootEntries,
@@ -149,6 +172,7 @@ public static class CombatExplorationReturnData
             LootCell = lootCell;
             LeaderCharacterId = leaderCharacterId;
             DefeatedEnemyCount = Mathf.Max(0, defeatedEnemyCount);
+            RewardMoney = Mathf.Max(0, rewardMoney);
             PlayerSurvivors = playerSurvivors ?? new List<PlayerReturnSnapshot>();
             PreservedEnemies = preservedEnemies ?? new List<EnemyReturnSnapshot>();
             LootEntries = lootEntries ?? new List<InventoryItemEntry>();

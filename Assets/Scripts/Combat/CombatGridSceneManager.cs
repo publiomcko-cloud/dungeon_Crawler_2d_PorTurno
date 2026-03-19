@@ -49,10 +49,8 @@ public class CombatGridSceneManager : MonoBehaviour
 
     private void Start()
     {
-        if (!buildOnStart)
-            return;
-
-        BuildCombatScene();
+        if (buildOnStart)
+            BuildCombatScene();
     }
 
     public void BuildCombatScene()
@@ -76,16 +74,8 @@ public class CombatGridSceneManager : MonoBehaviour
             .ThenBy(participant => participant.EntityName)
             .ToList();
 
-        List<CombatSessionData.CombatParticipantSnapshot> players = participants
-            .Where(participant => participant.Team == Team.Player)
-            .ToList();
-
-        List<CombatSessionData.CombatParticipantSnapshot> enemies = participants
-            .Where(participant => participant.Team == Team.Enemy)
-            .ToList();
-
-        SpawnSide(players, playerOriginCell, false);
-        SpawnSide(enemies, enemyOriginCell, true);
+        SpawnSide(participants.Where(participant => participant.Team == Team.Player).ToList(), playerOriginCell, false);
+        SpawnSide(participants.Where(participant => participant.Team == Team.Enemy).ToList(), enemyOriginCell, true);
 
         StartCoroutine(FinalizeBuildAfterSpawnRoutine());
 
@@ -96,7 +86,6 @@ public class CombatGridSceneManager : MonoBehaviour
     private IEnumerator FinalizeBuildAfterSpawnRoutine()
     {
         yield return null;
-
         HasBuiltCombatants = true;
         OnCombatantsBuilt?.Invoke();
     }
@@ -107,27 +96,15 @@ public class CombatGridSceneManager : MonoBehaviour
             gridManager = FindFirstObjectByType<GridManager>();
 
         if (gridManager == null)
-        {
-            Debug.LogWarning("CombatGridSceneManager: GridManager reference is missing in CombatGrid scene.");
             return false;
-        }
 
-        if (formationRowsPerColumn < 1)
-            formationRowsPerColumn = 1;
-
-        if (rowSpacing < 1)
-            rowSpacing = 1;
-
-        if (columnSpacing < 1)
-            columnSpacing = 1;
-
+        formationRowsPerColumn = Mathf.Max(1, formationRowsPerColumn);
+        rowSpacing = Mathf.Max(1, rowSpacing);
+        columnSpacing = Mathf.Max(1, columnSpacing);
         return true;
     }
 
-    private void SpawnSide(
-        List<CombatSessionData.CombatParticipantSnapshot> participants,
-        Vector2Int originCell,
-        bool mirrorHorizontally)
+    private void SpawnSide(List<CombatSessionData.CombatParticipantSnapshot> participants, Vector2Int originCell, bool mirrorHorizontally)
     {
         for (int i = 0; i < participants.Count; i++)
         {
@@ -135,22 +112,14 @@ public class CombatGridSceneManager : MonoBehaviour
             Vector2Int spawnCell = GetFormationCell(originCell, i, mirrorHorizontally);
 
             if (gridManager.IsCellBlocked(spawnCell))
-            {
-                Debug.LogWarning($"CombatGridSceneManager: blocked combat spawn cell {spawnCell} for '{snapshot.EntityName}'.");
                 continue;
-            }
 
             GameObject prefab = ResolvePrefab(snapshot);
             if (prefab == null)
-            {
-                Debug.LogWarning($"CombatGridSceneManager: no prefab configured for '{snapshot.EntityName}' ({snapshot.Team}).");
                 continue;
-            }
 
             Vector3 spawnPosition = gridManager.GetCellCenterWorld(spawnCell);
-            Transform parent = spawnRoot != null ? spawnRoot : null;
-            GameObject instance = Instantiate(prefab, spawnPosition, Quaternion.identity, parent);
-
+            GameObject instance = Instantiate(prefab, spawnPosition, Quaternion.identity, spawnRoot != null ? spawnRoot : null);
             ConfigureSpawnedEntity(instance, snapshot, spawnCell, i);
         }
     }
@@ -159,16 +128,12 @@ public class CombatGridSceneManager : MonoBehaviour
     {
         int row = index % formationRowsPerColumn;
         int column = index / formationRowsPerColumn;
-
         int horizontalStep = column * columnSpacing;
         if (mirrorHorizontally)
             horizontalStep *= -1;
 
         int verticalStep = row * rowSpacing;
-
-        return new Vector2Int(
-            originCell.x + horizontalStep,
-            originCell.y - verticalStep);
+        return new Vector2Int(originCell.x + horizontalStep, originCell.y - verticalStep);
     }
 
     private GameObject ResolvePrefab(CombatSessionData.CombatParticipantSnapshot snapshot)
@@ -179,33 +144,19 @@ public class CombatGridSceneManager : MonoBehaviour
             if (prefabOverride == null || prefabOverride.prefab == null)
                 continue;
 
-            if (string.Equals(
-                prefabOverride.entityName,
-                snapshot.EntityName,
-                StringComparison.OrdinalIgnoreCase))
-            {
+            if (string.Equals(prefabOverride.entityName, snapshot.EntityName, StringComparison.OrdinalIgnoreCase))
                 return prefabOverride.prefab;
-            }
         }
 
-        return snapshot.Team == Team.Player
-            ? defaultPlayerCombatPrefab
-            : defaultEnemyCombatPrefab;
+        return snapshot.Team == Team.Player ? defaultPlayerCombatPrefab : defaultEnemyCombatPrefab;
     }
 
-    private void ConfigureSpawnedEntity(
-        GameObject instance,
-        CombatSessionData.CombatParticipantSnapshot snapshot,
-        Vector2Int spawnCell,
-        int spawnIndex)
+    private void ConfigureSpawnedEntity(GameObject instance, CombatSessionData.CombatParticipantSnapshot snapshot, Vector2Int spawnCell, int spawnIndex)
     {
         Entity entity = instance.GetComponent<Entity>();
         CharacterStats stats = instance.GetComponent<CharacterStats>();
-
         if (entity == null || stats == null)
         {
-            Debug.LogWarning(
-                $"CombatGridSceneManager: prefab '{instance.name}' needs Entity and CharacterStats components.");
             Destroy(instance);
             return;
         }
@@ -214,18 +165,15 @@ public class CombatGridSceneManager : MonoBehaviour
         entity.name = $"{snapshot.EntityName}_Combat_{spawnIndex}";
         entity.SetGridPosition(spawnCell);
         entity.SetVisualTarget(gridManager.GetCellCenterWorld(spawnCell), true);
+        entity.SetMoneyReward(snapshot.MoneyReward);
+        entity.SetQuestEnemyId(snapshot.QuestEnemyId);
+        entity.SetEnemyPrefabId(snapshot.EnemyPrefabId);
 
         CombatEntityRuntime runtime = instance.GetComponent<CombatEntityRuntime>();
         if (runtime == null)
             runtime = instance.AddComponent<CombatEntityRuntime>();
 
-        runtime.Setup(
-            snapshot.CombatantId,
-            snapshot.CharacterId,
-            snapshot.EntityName,
-            snapshot.ExplorationCell,
-            spawnIndex,
-            true);
+        runtime.Setup(snapshot.CombatantId, snapshot.CharacterId, snapshot.EntityName, snapshot.ExplorationCell, spawnIndex, true);
 
         CharacterIdentity identity = instance.GetComponent<CharacterIdentity>();
         if (identity == null)
@@ -246,7 +194,6 @@ public class CombatGridSceneManager : MonoBehaviour
 
         CharacterStats stats = entity.GetStatsComponent();
         EquipmentSlots equipmentSlots = entity.GetEquipmentSlots();
-
         if (stats == null)
             return;
 
@@ -276,12 +223,8 @@ public class CombatGridSceneManager : MonoBehaviour
             return;
 
         if (entry.IsStaticItem)
-        {
             entity.EquipItem(entry.StaticItem);
-            return;
-        }
-
-        if (entry.IsGeneratedItem)
+        else if (entry.IsGeneratedItem)
             entity.EquipGeneratedItem(entry.GeneratedItem);
     }
 
@@ -298,41 +241,5 @@ public class CombatGridSceneManager : MonoBehaviour
 
         if (defaultEnemyCombatPrefab == null)
             Debug.LogWarning("CombatGridSceneManager: 'Default Enemy Combat Prefab' nao esta preenchido.", this);
-
-        ValidateCombatPrefab(defaultPlayerCombatPrefab, "Default Player Combat Prefab");
-        ValidateCombatPrefab(defaultEnemyCombatPrefab, "Default Enemy Combat Prefab");
-
-        for (int i = 0; i < prefabOverrides.Count; i++)
-        {
-            CombatPrefabOverride prefabOverride = prefabOverrides[i];
-            if (prefabOverride == null)
-            {
-                Debug.LogWarning($"CombatGridSceneManager: prefab override {i} esta nulo.", this);
-                continue;
-            }
-
-            if (string.IsNullOrWhiteSpace(prefabOverride.entityName))
-                Debug.LogWarning($"CombatGridSceneManager: prefab override {i} esta sem entityName.", this);
-
-            if (prefabOverride.prefab == null)
-            {
-                Debug.LogWarning($"CombatGridSceneManager: prefab override '{prefabOverride.entityName}' esta sem prefab.", this);
-                continue;
-            }
-
-            ValidateCombatPrefab(prefabOverride.prefab, $"Prefab Override '{prefabOverride.entityName}'");
-        }
-    }
-
-    private void ValidateCombatPrefab(GameObject prefab, string label)
-    {
-        if (prefab == null)
-            return;
-
-        if (prefab.GetComponent<Entity>() == null)
-            Debug.LogWarning($"CombatGridSceneManager: {label} '{prefab.name}' nao possui Entity.", this);
-
-        if (prefab.GetComponent<CharacterStats>() == null)
-            Debug.LogWarning($"CombatGridSceneManager: {label} '{prefab.name}' nao possui CharacterStats.", this);
     }
 }

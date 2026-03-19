@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class TurnManager : MonoBehaviour
@@ -8,7 +9,8 @@ public class TurnManager : MonoBehaviour
     [SerializeField] private EnemyAI enemyAI;
 
     public bool IsPlayerTurn { get; private set; } = true;
-    private bool enemyTurnRunning = false;
+
+    private bool enemyTurnRunning;
 
     private void Awake()
     {
@@ -23,10 +25,19 @@ public class TurnManager : MonoBehaviour
 
     public void StartEnemyTurn()
     {
-        if (enemyTurnRunning) return;
+        if (enemyTurnRunning)
+            return;
 
         IsPlayerTurn = false;
         StartCoroutine(EnemyTurnRoutine());
+    }
+
+    public bool TryTriggerAdjacentEnemyCombat(List<Entity> defendingParty, Vector2Int partyCell)
+    {
+        if (enemyAI == null)
+            enemyAI = FindFirstObjectByType<EnemyAI>();
+
+        return enemyAI != null && enemyAI.TryTriggerAdjacentCombat(defendingParty, partyCell);
     }
 
     private IEnumerator EnemyTurnRoutine()

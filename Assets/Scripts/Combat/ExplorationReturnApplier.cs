@@ -30,10 +30,7 @@ public class ExplorationReturnApplier : MonoBehaviour
 
     private void Start()
     {
-        if (applied)
-            return;
-
-        if (!CombatExplorationReturnData.HasPendingReturn)
+        if (applied || !CombatExplorationReturnData.HasPendingReturn)
             return;
 
         StartCoroutine(ApplyReturnRoutine());
@@ -68,6 +65,7 @@ public class ExplorationReturnApplier : MonoBehaviour
             yield break;
 
         RestorePartyInventory(pending);
+        ApplyRewardMoney(pending);
         RemoveAllEnemiesInScene();
         RestorePreservedEnemies(pending);
         List<Entity> survivors = ApplyPlayerSurvivors(pending);
@@ -83,16 +81,19 @@ public class ExplorationReturnApplier : MonoBehaviour
 
     private void RestorePartyInventory(CombatExplorationReturnData.ExplorationReturnSnapshot pending)
     {
-        if (partyInventory == null || pending == null)
-            return;
+        if (partyInventory != null && pending != null)
+            partyInventory.RestoreItemsSnapshot(pending.PartyInventoryItems);
+    }
 
-        partyInventory.RestoreItemsSnapshot(pending.PartyInventoryItems);
+    private void ApplyRewardMoney(CombatExplorationReturnData.ExplorationReturnSnapshot pending)
+    {
+        if (pending != null && pending.RewardMoney > 0 && PartyCurrency.Instance != null)
+            PartyCurrency.Instance.AddMoney(pending.RewardMoney);
     }
 
     private void RemoveAllEnemiesInScene()
     {
         Entity[] entities = FindObjectsByType<Entity>(FindObjectsSortMode.None);
-
         for (int i = 0; i < entities.Length; i++)
         {
             Entity entity = entities[i];
@@ -111,14 +112,20 @@ public class ExplorationReturnApplier : MonoBehaviour
         if (pending == null || pending.PreservedEnemies == null || pending.PreservedEnemies.Count == 0)
             return;
 
-        GameObject enemyPrefab = enemySpawner != null ? enemySpawner.enemyPrefab : null;
-        if (enemyPrefab == null)
-            return;
-
         for (int i = 0; i < pending.PreservedEnemies.Count; i++)
         {
             CombatExplorationReturnData.EnemyReturnSnapshot snapshot = pending.PreservedEnemies[i];
             if (snapshot == null)
+                continue;
+
+            GameObject enemyPrefab = enemySpawner != null
+                ? enemySpawner.ResolveEnemyPrefab(snapshot.EnemyPrefabId)
+                : null;
+
+            if (enemyPrefab == null)
+                enemyPrefab = enemySpawner != null ? enemySpawner.FallbackEnemyPrefab : null;
+
+            if (enemyPrefab == null)
                 continue;
 
             Vector3 spawnPosition = gridManager != null
@@ -127,16 +134,17 @@ public class ExplorationReturnApplier : MonoBehaviour
 
             GameObject instance = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
             Entity entity = instance.GetComponent<Entity>();
-
             if (entity == null)
             {
                 Destroy(instance);
                 continue;
             }
 
+            if (enemySpawner != null)
+                enemySpawner.ApplySpawnMetadata(entity, enemyPrefab);
+
             entity.name = snapshot.EntityName;
             entity.team = Team.Enemy;
-
             ApplyEntitySnapshot(entity, snapshot, snapshot.Cell);
         }
     }
@@ -151,13 +159,11 @@ public class ExplorationReturnApplier : MonoBehaviour
 
         Dictionary<string, CombatExplorationReturnData.PlayerReturnSnapshot> survivorsByCharacterId =
             new Dictionary<string, CombatExplorationReturnData.PlayerReturnSnapshot>();
+
         for (int i = 0; i < pending.PlayerSurvivors.Count; i++)
         {
             CombatExplorationReturnData.PlayerReturnSnapshot snapshot = pending.PlayerSurvivors[i];
-            if (snapshot == null || string.IsNullOrWhiteSpace(snapshot.CharacterId))
-                continue;
-
-            if (!survivorsByCharacterId.ContainsKey(snapshot.CharacterId))
+            if (snapshot != null && !string.IsNullOrWhiteSpace(snapshot.CharacterId) && !survivorsByCharacterId.ContainsKey(snapshot.CharacterId))
                 survivorsByCharacterId.Add(snapshot.CharacterId, snapshot);
         }
 
@@ -238,9 +244,8 @@ public class ExplorationReturnApplier : MonoBehaviour
 
         for (int i = 0; i < scenePlayers.Count; i++)
         {
-            Entity player = scenePlayers[i];
-            if (player != null)
-                return player.gameObject;
+            if (scenePlayers[i] != null)
+                return scenePlayers[i].gameObject;
         }
 
         return null;
@@ -255,13 +260,8 @@ public class ExplorationReturnApplier : MonoBehaviour
             return null;
 
         GameObject playerTemplate = ResolvePlayerTemplate(snapshot.CharacterId, scenePlayers);
-
         if (playerTemplate == null)
-        {
-            Debug.LogWarning(
-                $"ExplorationReturnApplier: no player prefab/template available to restore '{snapshot.CharacterId}'.");
             return null;
-        }
 
         Vector3 spawnPosition = gridManager != null
             ? gridManager.GetCellCenterWorld(targetCell)
@@ -273,8 +273,6 @@ public class ExplorationReturnApplier : MonoBehaviour
         Entity entity = instance.GetComponent<Entity>();
         if (entity == null)
         {
-            Debug.LogWarning(
-                $"ExplorationReturnApplier: player template '{playerTemplate.name}' needs an Entity component.");
             Destroy(instance);
             return null;
         }
@@ -294,6 +292,9 @@ public class ExplorationReturnApplier : MonoBehaviour
             return;
 
         entity.name = snapshot.EntityName;
+        entity.SetMoneyReward(snapshot.MoneyReward);
+        entity.SetQuestEnemyId(snapshot.QuestEnemyId);
+        entity.SetEnemyPrefabId(snapshot.EnemyPrefabId);
 
         CharacterIdentity identity = entity.GetComponent<CharacterIdentity>();
         if (identity == null)
@@ -346,21 +347,14 @@ public class ExplorationReturnApplier : MonoBehaviour
             return;
 
         if (entry.IsStaticItem)
-        {
             entity.EquipItem(entry.StaticItem);
-            return;
-        }
-
-        if (entry.IsGeneratedItem)
+        else if (entry.IsGeneratedItem)
             entity.EquipGeneratedItem(entry.GeneratedItem);
     }
 
     private void SpawnVictoryLoot(CombatExplorationReturnData.ExplorationReturnSnapshot pending)
     {
-        if (groundItemPrefab == null)
-            return;
-
-        if (pending == null || pending.LootEntries == null || pending.LootEntries.Count == 0)
+        if (groundItemPrefab == null || pending == null || pending.LootEntries == null || pending.LootEntries.Count == 0)
             return;
 
         Vector3 basePosition = gridManager != null
@@ -376,7 +370,6 @@ public class ExplorationReturnApplier : MonoBehaviour
             Vector3 spawnPosition = basePosition + new Vector3((i % 2) * 0.08f, (i / 2) * 0.08f, 0f);
             GameObject instance = Instantiate(groundItemPrefab, spawnPosition, Quaternion.identity);
             GroundItem groundItem = instance.GetComponent<GroundItem>();
-
             if (groundItem == null)
             {
                 Destroy(instance);
@@ -390,25 +383,20 @@ public class ExplorationReturnApplier : MonoBehaviour
         }
     }
 
-    private void TryOpenLootWindow(
-        CombatExplorationReturnData.ExplorationReturnSnapshot pending,
-        List<Entity> survivors)
+    private void TryOpenLootWindow(CombatExplorationReturnData.ExplorationReturnSnapshot pending, List<Entity> survivors)
     {
         if (lootWindowUI == null)
             return;
 
         Entity target = null;
-
         if (partyAnchorService != null)
             target = partyAnchorService.GetLeader();
 
         if (target == null && survivors.Count > 0)
             target = survivors[0];
 
-        if (target == null)
-            return;
-
-        lootWindowUI.OpenForCell(target, pending.LootCell);
+        if (target != null)
+            lootWindowUI.OpenForCell(target, pending.LootCell);
     }
 
     private void ValidateInspectorConfiguration()
@@ -422,36 +410,11 @@ public class ExplorationReturnApplier : MonoBehaviour
         WarnIfMissing(partyInventory, "Party Inventory");
         WarnIfMissing(enemySpawner, "Enemy Spawner");
         WarnIfMissing(groundItemPrefab, "Ground Item Prefab");
-
-        if (playerPrefabLibrary == null && playerPartyMemberPrefab == null)
-        {
-            Debug.LogWarning(
-                "ExplorationReturnApplier: preencha 'Player Character Prefab Library' ou 'Player Party Member Prefab'.",
-                this);
-        }
-
-        if (playerPartyMemberPrefab != null)
-            ValidatePlayerPrefab(playerPartyMemberPrefab, "Player Party Member Prefab");
     }
 
     private void WarnIfMissing(Object value, string label)
     {
         if (value == null)
             Debug.LogWarning($"ExplorationReturnApplier: '{label}' nao esta preenchido.", this);
-    }
-
-    private void ValidatePlayerPrefab(GameObject prefab, string label)
-    {
-        if (prefab == null)
-            return;
-
-        if (prefab.GetComponent<Entity>() == null)
-            Debug.LogWarning($"ExplorationReturnApplier: {label} '{prefab.name}' nao possui Entity.", this);
-
-        if (prefab.GetComponent<CharacterStats>() == null)
-            Debug.LogWarning($"ExplorationReturnApplier: {label} '{prefab.name}' nao possui CharacterStats.", this);
-
-        if (prefab.GetComponent<CharacterIdentity>() == null)
-            Debug.LogWarning($"ExplorationReturnApplier: {label} '{prefab.name}' nao possui CharacterIdentity.", this);
     }
 }

@@ -21,7 +21,7 @@ public class CombatTurnManager : MonoBehaviour
     [SerializeField] private int activeOutlineSortingOrderOffset = -1;
 
     [Header("Enemy AI")]
-    [SerializeField] private bool enemyRequiresLineOfSight = false;
+    [SerializeField] private bool enemyRequiresLineOfSight;
 
     public Team CurrentTurnTeam { get; private set; }
     public Entity CurrentActiveEntity { get; private set; }
@@ -64,12 +64,8 @@ public class CombatTurnManager : MonoBehaviour
     private void Start()
     {
         if (combatGridSceneManager != null && combatGridSceneManager.HasBuiltCombatants)
-        {
             StartCombatLoop();
-            return;
-        }
-
-        if (combatGridSceneManager == null)
+        else if (combatGridSceneManager == null)
             StartCombatLoop();
     }
 
@@ -97,10 +93,7 @@ public class CombatTurnManager : MonoBehaviour
 
     private void Update()
     {
-        if (IsCombatFinished || IsResolvingAction)
-            return;
-
-        if (CurrentTurnTeam != Team.Player)
+        if (IsCombatFinished || IsResolvingAction || CurrentTurnTeam != Team.Player)
             return;
 
         if (!TryEnsureActiveEntity())
@@ -119,26 +112,20 @@ public class CombatTurnManager : MonoBehaviour
         }
 
         Vector2Int direction = ReadDirectionInput();
-        if (direction == Vector2Int.zero)
-            return;
-
-        TryActWithEntity(CurrentActiveEntity, direction);
+        if (direction != Vector2Int.zero)
+            TryActWithEntity(CurrentActiveEntity, direction);
     }
 
     private Vector2Int ReadDirectionInput()
     {
         if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
             return Vector2Int.up;
-
         if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow))
             return Vector2Int.down;
-
         if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow))
             return Vector2Int.left;
-
         if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow))
             return Vector2Int.right;
-
         return Vector2Int.zero;
     }
 
@@ -158,11 +145,8 @@ public class CombatTurnManager : MonoBehaviour
         if (CurrentTurnTeam == Team.Player)
         {
             SelectNextAvailablePlayerEntity();
-            Debug.Log($"CombatTurnManager: round {RoundIndex} player phase.");
             return;
         }
-
-        Debug.Log($"CombatTurnManager: round {RoundIndex} enemy phase.");
 
         if (enemyTurnRoutine != null)
             StopCoroutine(enemyTurnRoutine);
@@ -227,13 +211,9 @@ public class CombatTurnManager : MonoBehaviour
 
             Vector2Int? actionDirection = GetEnemyActionDirection(actingEnemy);
             if (actionDirection.HasValue)
-            {
                 yield return StartCoroutine(ResolveActionRoutine(actingEnemy, actionDirection.Value));
-            }
             else
-            {
                 CompleteEntityAction(actingEnemy);
-            }
 
             yield return new WaitForSeconds(delayBetweenEnemyActions);
         }
@@ -287,20 +267,6 @@ public class CombatTurnManager : MonoBehaviour
                 return vertical;
         }
 
-        if (delta.x != 0)
-        {
-            Vector2Int horizontal = new Vector2Int(delta.x > 0 ? 1 : -1, 0);
-            if (CanEnemyUseDirection(enemy, horizontal))
-                return horizontal;
-        }
-
-        if (delta.y != 0)
-        {
-            Vector2Int vertical = new Vector2Int(0, delta.y > 0 ? 1 : -1);
-            if (CanEnemyUseDirection(enemy, vertical))
-                return vertical;
-        }
-
         return null;
     }
 
@@ -321,10 +287,7 @@ public class CombatTurnManager : MonoBehaviour
 
     private void TryActWithEntity(Entity entity, Vector2Int direction)
     {
-        if (entity == null || entity.IsDead)
-            return;
-
-        if (IsResolvingAction)
+        if (entity == null || entity.IsDead || IsResolvingAction)
             return;
 
         StartCoroutine(ResolveActionRoutine(entity, direction));
@@ -338,7 +301,6 @@ public class CombatTurnManager : MonoBehaviour
         IsResolvingAction = true;
 
         Vector2Int targetCell = entity.GridPosition + direction;
-
         if (gridManager.IsCellBlocked(targetCell))
         {
             IsResolvingAction = false;
@@ -391,9 +353,7 @@ public class CombatTurnManager : MonoBehaviour
         int damage = Mathf.Max(1, attacker.attackDamage);
         Entity primaryTarget = defenders[0];
         CharacterStats defenderStats = primaryTarget.GetStatsComponent();
-        int finalDamage = defenderStats != null
-            ? defenderStats.CalculateIncomingDamage(damage)
-            : damage;
+        int finalDamage = defenderStats != null ? defenderStats.CalculateIncomingDamage(damage) : damage;
 
         primaryTarget.ReceiveDamage(finalDamage);
         return true;
@@ -424,13 +384,12 @@ public class CombatTurnManager : MonoBehaviour
             return;
 
         if (CurrentTurnTeam == Team.Player)
-        {
             BeginTurnPhase(Team.Enemy);
-            return;
+        else
+        {
+            RoundIndex += 1;
+            BeginTurnPhase(Team.Player);
         }
-
-        RoundIndex += 1;
-        BeginTurnPhase(Team.Player);
     }
 
     private bool CheckCombatFinished()
@@ -451,8 +410,6 @@ public class CombatTurnManager : MonoBehaviour
         }
 
         Team winner = hasPlayers ? Team.Player : Team.Enemy;
-        Debug.Log($"CombatTurnManager: combat finished. Winner = {winner}.");
-
         if (!returnTriggered)
         {
             returnTriggered = true;
@@ -513,10 +470,8 @@ public class CombatTurnManager : MonoBehaviour
             return;
 
         CombatTurnOutline outline = entity.GetComponent<CombatTurnOutline>();
-        if (outline == null)
-            return;
-
-        outline.Configure(activeOutlineColor, activeOutlineOffset, activeOutlineSortingOrderOffset);
+        if (outline != null)
+            outline.Configure(activeOutlineColor, activeOutlineOffset, activeOutlineSortingOrderOffset);
     }
 
     private int Manhattan(Vector2Int a, Vector2Int b)
@@ -568,9 +523,7 @@ public class CombatTurnManager : MonoBehaviour
             CombatSessionData.CombatParticipantSnapshot originalSnapshot =
                 FindOriginalPlayerSnapshot(session, combatantId, originalCharacterId, originalName);
             CombatSessionData.EntityStateSnapshot currentState = new CombatSessionData.EntityStateSnapshot(entity);
-            Vector2Int returnCell = session.InitiatingTeam == Team.Player
-                ? session.DefenderCell
-                : session.AttackerCell;
+            Vector2Int returnCell = session.InitiatingTeam == Team.Player ? session.DefenderCell : session.AttackerCell;
 
             survivorSnapshots.Add(new CombatExplorationReturnData.PlayerReturnSnapshot(
                 originalName,
@@ -581,6 +534,9 @@ public class CombatTurnManager : MonoBehaviour
                 currentState.CurrentXP,
                 currentState.UnspentStatPoints,
                 currentState.Level,
+                currentState.MoneyReward,
+                currentState.QuestEnemyId,
+                currentState.EnemyPrefabId,
                 currentState.BaseStats,
                 currentState.PointBonus,
                 currentState.EquippedWeapon ?? originalSnapshot?.EquippedWeapon,
@@ -603,6 +559,7 @@ public class CombatTurnManager : MonoBehaviour
             session.Defenders.Count(participant => participant.Team == Team.Enemy);
         int survivingEnemyCount = gridManager.GetEntitiesByTeam(Team.Enemy).Count;
         int defeatedEnemyCount = Mathf.Max(0, initialEnemyCount - survivingEnemyCount);
+        int rewardMoney = defeatedEnemySnapshots.Sum(snapshot => snapshot.MoneyReward);
 
         List<CombatExplorationReturnData.EnemyReturnSnapshot> preservedEnemies = session.PreservedExplorationEnemies
             .Select(snapshot => new CombatExplorationReturnData.EnemyReturnSnapshot(
@@ -614,6 +571,9 @@ public class CombatTurnManager : MonoBehaviour
                 snapshot.CurrentXP,
                 snapshot.UnspentStatPoints,
                 snapshot.Level,
+                snapshot.MoneyReward,
+                snapshot.QuestEnemyId,
+                snapshot.EnemyPrefabId,
                 snapshot.BaseStats,
                 snapshot.PointBonus,
                 snapshot.EquippedWeapon,
@@ -622,9 +582,7 @@ public class CombatTurnManager : MonoBehaviour
             .ToList();
 
         List<InventoryItemEntry> lootEntries = RollLootEntries(defeatedEnemySnapshots);
-        Vector2Int finalReturnCell = session.InitiatingTeam == Team.Player
-            ? session.DefenderCell
-            : session.AttackerCell;
+        Vector2Int finalReturnCell = session.InitiatingTeam == Team.Player ? session.DefenderCell : session.AttackerCell;
         string leaderCharacterId = PartyAnchorService.Instance != null && PartyAnchorService.Instance.GetLeader() != null
             ? CharacterIdentity.ResolveFromEntity(PartyAnchorService.Instance.GetLeader())
             : null;
@@ -636,6 +594,7 @@ public class CombatTurnManager : MonoBehaviour
                 finalReturnCell,
                 leaderCharacterId,
                 defeatedEnemyCount,
+                rewardMoney,
                 survivorSnapshots,
                 preservedEnemies,
                 lootEntries,
@@ -670,9 +629,7 @@ public class CombatTurnManager : MonoBehaviour
 
         return session.Attackers
             .Concat(session.Defenders)
-            .FirstOrDefault(candidate =>
-                candidate.Team == Team.Player &&
-                candidate.EntityName == originalName);
+            .FirstOrDefault(candidate => candidate.Team == Team.Player && candidate.EntityName == originalName);
     }
 
     private List<InventoryItemEntry> RollLootEntries(List<CombatSessionData.CombatParticipantSnapshot> defeatedEnemySnapshots)
@@ -686,14 +643,10 @@ public class CombatTurnManager : MonoBehaviour
                 continue;
 
             List<LootDropEntry> validDrops = new List<LootDropEntry>();
-
             for (int j = 0; j < snapshot.LootTable.Count; j++)
             {
                 LootDropEntry entry = snapshot.LootTable[j];
-                if (entry == null || !entry.HasValidItemSource())
-                    continue;
-
-                if (entry.RollDrop())
+                if (entry != null && entry.HasValidItemSource() && entry.RollDrop())
                     validDrops.Add(entry);
             }
 
@@ -701,14 +654,11 @@ public class CombatTurnManager : MonoBehaviour
                 continue;
 
             LootDropEntry chosen = validDrops[Random.Range(0, validDrops.Count)];
-
             if (chosen.staticItem != null)
             {
                 result.Add(InventoryItemEntry.FromStatic(chosen.staticItem));
-                continue;
             }
-
-            if (chosen.generatedProfile != null)
+            else if (chosen.generatedProfile != null)
             {
                 GeneratedItemInstance generated = ItemGenerator.Generate(chosen.generatedProfile);
                 if (generated != null)

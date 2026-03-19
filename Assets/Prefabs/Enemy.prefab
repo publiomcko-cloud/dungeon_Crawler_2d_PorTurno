@@ -279,6 +279,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAI
   delayBetweenEnemyGroups: 0.15
+  keepEnemiesStaticInExploration: 1
+  allowAdjacentCombatTrigger: 1
+  useOnlyOrthogonalAdjacency: 1
   maxVisionRange: 3
   requireLineOfSight: 1
 --- !u!114 &1947735257507792333
@@ -294,12 +297,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Entity
   team: 1
+  questEnemyId: enemy1
+  enemyPrefabId: 
   moveSpeed: 6
   attackLungeDistance: 0.22
   attackLungeDuration: 0.08
   isAnimatingAttack: 0
   damageNumberAnchor: {fileID: 0}
   xpReward: 5
+  moneyReward: 50
+  adjacentCombatTriggerChance: 0.17
 --- !u!95 &727652984137161037
 Animator:
   serializedVersion: 7

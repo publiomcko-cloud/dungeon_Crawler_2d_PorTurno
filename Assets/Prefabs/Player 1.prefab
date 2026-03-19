@@ -202,12 +202,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Entity
   team: 0
+  questEnemyId: 
+  enemyPrefabId: 
   moveSpeed: 6
   attackLungeDistance: 0.22
   attackLungeDuration: 0.08
   isAnimatingAttack: 0
   damageNumberAnchor: {fileID: 0}
   xpReward: 5
+  moneyReward: 0
+  adjacentCombatTriggerChance: 0.25
 --- !u!95 &5447965957265274592
 Animator:
   serializedVersion: 7
@@ -287,8 +291,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
   baseStats:
-    hp: 10
-    atk: 3
+    hp: 200
+    atk: 5
     def: 0
     ap: 1
     crit: 5

@@ -27,10 +27,7 @@ public class ExplorationSceneBootstrap : MonoBehaviour
 
     private void Start()
     {
-        if (applied)
-            return;
-
-        if (CombatExplorationReturnData.HasPendingReturn)
+        if (applied || CombatExplorationReturnData.HasPendingReturn)
             return;
 
         StartCoroutine(BootstrapRoutine());
@@ -89,10 +86,8 @@ public class ExplorationSceneBootstrap : MonoBehaviour
 
     private void RestorePartyInventory(ExplorationScenePersistenceData.PendingSceneTransition pending)
     {
-        if (partyInventory == null || pending == null)
-            return;
-
-        partyInventory.RestoreItemsSnapshot(pending.PartyInventoryItems);
+        if (partyInventory != null && pending != null)
+            partyInventory.RestoreItemsSnapshot(pending.PartyInventoryItems);
     }
 
     private void ApplyPartyState(ExplorationScenePersistenceData.PendingSceneTransition pending, Vector2Int arrivalCell)
@@ -107,13 +102,11 @@ public class ExplorationSceneBootstrap : MonoBehaviour
 
         Dictionary<string, ExplorationScenePersistenceData.PartyMemberSnapshot> snapshotsByCharacterId =
             new Dictionary<string, ExplorationScenePersistenceData.PartyMemberSnapshot>();
+
         for (int i = 0; i < pending.PartyMembers.Count; i++)
         {
             ExplorationScenePersistenceData.PartyMemberSnapshot snapshot = pending.PartyMembers[i];
-            if (snapshot == null || string.IsNullOrWhiteSpace(snapshot.CharacterId))
-                continue;
-
-            if (!snapshotsByCharacterId.ContainsKey(snapshot.CharacterId))
+            if (snapshot != null && !string.IsNullOrWhiteSpace(snapshot.CharacterId) && !snapshotsByCharacterId.ContainsKey(snapshot.CharacterId))
                 snapshotsByCharacterId.Add(snapshot.CharacterId, snapshot);
         }
 
@@ -128,6 +121,7 @@ public class ExplorationSceneBootstrap : MonoBehaviour
             if (!playersByCharacterId.ContainsKey(characterId))
                 playersByCharacterId.Add(characterId, player);
         }
+
         List<Entity> resolvedPlayers = new List<Entity>();
 
         foreach (ExplorationScenePersistenceData.PartyMemberSnapshot snapshot in pending.PartyMembers)
@@ -189,9 +183,8 @@ public class ExplorationSceneBootstrap : MonoBehaviour
 
         for (int i = 0; i < scenePlayers.Count; i++)
         {
-            Entity player = scenePlayers[i];
-            if (player != null)
-                return player.gameObject;
+            if (scenePlayers[i] != null)
+                return scenePlayers[i].gameObject;
         }
 
         return null;
@@ -206,11 +199,9 @@ public class ExplorationSceneBootstrap : MonoBehaviour
             return null;
 
         GameObject playerTemplate = ResolvePlayerTemplate(snapshot.CharacterId, scenePlayers);
-
         if (playerTemplate == null)
         {
-            Debug.LogWarning(
-                $"ExplorationSceneBootstrap: no player prefab/template available to restore '{snapshot.CharacterId}'.");
+            Debug.LogWarning($"ExplorationSceneBootstrap: no player prefab/template available to restore '{snapshot.CharacterId}'.");
             return null;
         }
 
@@ -224,8 +215,6 @@ public class ExplorationSceneBootstrap : MonoBehaviour
         Entity entity = instance.GetComponent<Entity>();
         if (entity == null)
         {
-            Debug.LogWarning(
-                $"ExplorationSceneBootstrap: player template '{playerTemplate.name}' needs an Entity component.");
             Destroy(instance);
             return null;
         }
@@ -242,14 +231,10 @@ public class ExplorationSceneBootstrap : MonoBehaviour
     private Vector2Int ResolveArrivalCell(string targetPortalId)
     {
         ScenePortal[] portals = FindObjectsByType<ScenePortal>(FindObjectsSortMode.None);
-
         for (int i = 0; i < portals.Length; i++)
         {
             ScenePortal portal = portals[i];
-            if (portal == null)
-                continue;
-
-            if (portal.PortalId == targetPortalId)
+            if (portal != null && portal.PortalId == targetPortalId)
                 return portal.GetArrivalCell();
         }
 
@@ -261,14 +246,20 @@ public class ExplorationSceneBootstrap : MonoBehaviour
         if (sceneState == null || sceneState.Enemies == null || sceneState.Enemies.Count == 0)
             return;
 
-        GameObject enemyPrefab = enemySpawner != null ? enemySpawner.enemyPrefab : null;
-        if (enemyPrefab == null)
-            return;
-
         for (int i = 0; i < sceneState.Enemies.Count; i++)
         {
             ExplorationScenePersistenceData.EnemyStateSnapshot snapshot = sceneState.Enemies[i];
             if (snapshot == null)
+                continue;
+
+            GameObject enemyPrefab = enemySpawner != null
+                ? enemySpawner.ResolveEnemyPrefab(snapshot.EnemyPrefabId)
+                : null;
+
+            if (enemyPrefab == null)
+                enemyPrefab = enemySpawner != null ? enemySpawner.FallbackEnemyPrefab : null;
+
+            if (enemyPrefab == null)
                 continue;
 
             Vector3 spawnPosition = gridManager != null
@@ -277,12 +268,14 @@ public class ExplorationSceneBootstrap : MonoBehaviour
 
             GameObject instance = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
             Entity entity = instance.GetComponent<Entity>();
-
             if (entity == null)
             {
                 Destroy(instance);
                 continue;
             }
+
+            if (enemySpawner != null)
+                enemySpawner.ApplySpawnMetadata(entity, enemyPrefab);
 
             entity.name = snapshot.EntityName;
             entity.team = Team.Enemy;
@@ -292,10 +285,7 @@ public class ExplorationSceneBootstrap : MonoBehaviour
 
     private void RestoreGroundItems(ExplorationScenePersistenceData.SceneStateSnapshot sceneState)
     {
-        if (sceneState == null || sceneState.GroundItems == null || sceneState.GroundItems.Count == 0)
-            return;
-
-        if (groundItemPrefab == null)
+        if (sceneState == null || sceneState.GroundItems == null || sceneState.GroundItems.Count == 0 || groundItemPrefab == null)
             return;
 
         for (int i = 0; i < sceneState.GroundItems.Count; i++)
@@ -310,7 +300,6 @@ public class ExplorationSceneBootstrap : MonoBehaviour
 
             GameObject instance = Instantiate(groundItemPrefab, spawnPosition, Quaternion.identity);
             GroundItem groundItem = instance.GetComponent<GroundItem>();
-
             if (groundItem == null)
             {
                 Destroy(instance);
@@ -333,6 +322,9 @@ public class ExplorationSceneBootstrap : MonoBehaviour
             return;
 
         entity.name = snapshot.EntityName;
+        entity.SetMoneyReward(snapshot.MoneyReward);
+        entity.SetQuestEnemyId(snapshot.QuestEnemyId);
+        entity.SetEnemyPrefabId(snapshot.EnemyPrefabId);
 
         CharacterIdentity identity = entity.GetComponent<CharacterIdentity>();
         if (identity == null)
@@ -385,19 +377,14 @@ public class ExplorationSceneBootstrap : MonoBehaviour
             return;
 
         if (entry.IsStaticItem)
-        {
             entity.EquipItem(entry.StaticItem);
-            return;
-        }
-
-        if (entry.IsGeneratedItem)
+        else if (entry.IsGeneratedItem)
             entity.EquipGeneratedItem(entry.GeneratedItem);
     }
 
     private void RemoveAllEnemiesInScene()
     {
         Entity[] entities = FindObjectsByType<Entity>(FindObjectsSortMode.None);
-
         for (int i = 0; i < entities.Length; i++)
         {
             Entity entity = entities[i];
@@ -414,7 +401,6 @@ public class ExplorationSceneBootstrap : MonoBehaviour
     private void RemoveAllGroundItemsInScene()
     {
         GroundItem[] items = FindObjectsByType<GroundItem>(FindObjectsSortMode.None);
-
         for (int i = 0; i < items.Length; i++)
         {
             if (items[i] != null)
@@ -439,29 +425,11 @@ public class ExplorationSceneBootstrap : MonoBehaviour
                 "ExplorationSceneBootstrap: preencha 'Player Character Prefab Library' ou 'Player Party Member Prefab'.",
                 this);
         }
-
-        if (playerPartyMemberPrefab != null)
-            ValidatePlayerPrefab(playerPartyMemberPrefab, "Player Party Member Prefab");
     }
 
     private void WarnIfMissing(Object value, string label)
     {
         if (value == null)
             Debug.LogWarning($"ExplorationSceneBootstrap: '{label}' nao esta preenchido.", this);
-    }
-
-    private void ValidatePlayerPrefab(GameObject prefab, string label)
-    {
-        if (prefab == null)
-            return;
-
-        if (prefab.GetComponent<Entity>() == null)
-            Debug.LogWarning($"ExplorationSceneBootstrap: {label} '{prefab.name}' nao possui Entity.", this);
-
-        if (prefab.GetComponent<CharacterStats>() == null)
-            Debug.LogWarning($"ExplorationSceneBootstrap: {label} '{prefab.name}' nao possui CharacterStats.", this);
-
-        if (prefab.GetComponent<CharacterIdentity>() == null)
-            Debug.LogWarning($"ExplorationSceneBootstrap: {label} '{prefab.name}' nao possui CharacterIdentity.", this);
     }
 }

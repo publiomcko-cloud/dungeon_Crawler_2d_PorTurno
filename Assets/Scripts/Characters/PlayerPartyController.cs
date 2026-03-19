@@ -4,9 +4,32 @@ using UnityEngine;
 
 public class PlayerPartyController : MonoBehaviour
 {
+    [Header("Compatibility")]
+    [SerializeField] private bool disableIfPlayerGridMovementExists = true;
+
+    private void Awake()
+    {
+        if (!disableIfPlayerGridMovementExists)
+            return;
+
+        PlayerGridMovement[] movementScripts = FindObjectsByType<PlayerGridMovement>(FindObjectsSortMode.None);
+        for (int i = 0; i < movementScripts.Length; i++)
+        {
+            PlayerGridMovement movement = movementScripts[i];
+            if (movement == null || !movement.enabled)
+                continue;
+
+            enabled = false;
+            return;
+        }
+    }
+
     private void Update()
     {
-        if (!TurnManager.Instance.IsPlayerTurn)
+        if (!enabled)
+            return;
+
+        if (TurnManager.Instance == null || !TurnManager.Instance.IsPlayerTurn)
             return;
 
         Vector2Int direction = Vector2Int.zero;
@@ -28,25 +51,44 @@ public class PlayerPartyController : MonoBehaviour
 
     private void TryMoveParty(Vector2Int direction)
     {
+        if (GridManager.Instance == null)
+            return;
+
         List<Entity> party = GridManager.Instance.GetEntitiesByTeam(Team.Player);
+        if (party.Count == 0)
+            return;
+
+        Entity leader = PartyAnchorService.Instance != null ? PartyAnchorService.Instance.GetLeader() : null;
+        Vector2Int sourceCell = leader != null ? leader.GridPosition : party[0].GridPosition;
+
+        party = party
+            .Where(entity => entity != null && !entity.IsDead && entity.GridPosition == sourceCell)
+            .ToList();
 
         if (party.Count == 0)
             return;
 
-        Vector2Int sourceCell = party[0].GridPosition;
-
-        party = party
-            .Where(e => e.GridPosition == sourceCell)
-            .ToList();
-
         Vector2Int targetCell = sourceCell + direction;
+        Entity interactor = leader != null ? leader : party[0];
+
+        if (NpcActor.TryInteractAtCell(targetCell, interactor))
+            return;
 
         bool actionDone = GridManager.Instance.TryMoveGroupOrAttack(party, targetCell);
-
         bool isTransitioningToCombat = CombatTransitionManager.Instance != null &&
             CombatTransitionManager.Instance.IsTransitionInProgress;
 
-        if (actionDone && !isTransitioningToCombat)
-            TurnManager.Instance.StartEnemyTurn();
+        if (!actionDone || isTransitioningToCombat)
+            return;
+
+        bool enemyTriggeredCombat = TurnManager.Instance.TryTriggerAdjacentEnemyCombat(party, targetCell);
+        if (enemyTriggeredCombat)
+            return;
+
+        bool isTransitioningToAnotherScene = ScenePortal.TryTriggerPortalAtCell(targetCell);
+        if (isTransitioningToAnotherScene)
+            return;
+
+        TurnManager.Instance.StartEnemyTurn();
     }
 }

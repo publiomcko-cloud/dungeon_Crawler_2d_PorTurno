@@ -16,6 +16,9 @@ public static class CombatSessionData
         public int CurrentXP { get; private set; }
         public int UnspentStatPoints { get; private set; }
         public int Level { get; private set; }
+        public int MoneyReward { get; private set; }
+        public string QuestEnemyId { get; private set; }
+        public string EnemyPrefabId { get; private set; }
         public StatBlock BaseStats { get; private set; }
         public StatBlock PointBonus { get; private set; }
         public InventoryItemEntry EquippedWeapon { get; private set; }
@@ -35,6 +38,9 @@ public static class CombatSessionData
                 CurrentXP = 0;
                 UnspentStatPoints = 0;
                 Level = 1;
+                MoneyReward = 0;
+                QuestEnemyId = "";
+                EnemyPrefabId = "";
                 BaseStats = new StatBlock();
                 PointBonus = new StatBlock();
                 return;
@@ -51,6 +57,9 @@ public static class CombatSessionData
             CurrentXP = entity.CurrentXP;
             UnspentStatPoints = entity.UnspentStatPoints;
             Level = entity.Level;
+            MoneyReward = entity.moneyReward;
+            QuestEnemyId = entity.QuestEnemyId;
+            EnemyPrefabId = entity.EnemyPrefabId;
             BaseStats = stats != null && stats.BaseStats != null ? stats.BaseStats.Clone() : new StatBlock();
             PointBonus = stats != null && stats.PointBonus != null ? stats.PointBonus.Clone() : new StatBlock();
             EquippedWeapon = CreateEquipmentEntry(entity, EquipmentSlotType.Weapon);
