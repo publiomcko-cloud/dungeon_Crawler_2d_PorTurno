@@ -19,6 +19,11 @@ public static class CombatSessionData
         public int MoneyReward { get; private set; }
         public string QuestEnemyId { get; private set; }
         public string EnemyPrefabId { get; private set; }
+        public bool IsDungeonBoss { get; private set; }
+        public string BossPersistenceKey { get; private set; }
+        public string BossDisplayName { get; private set; }
+        public int BossRewardMoney { get; private set; }
+        public InventoryItemEntry BossRewardEntry { get; private set; }
         public StatBlock BaseStats { get; private set; }
         public StatBlock PointBonus { get; private set; }
         public InventoryItemEntry EquippedWeapon { get; private set; }
@@ -41,12 +46,18 @@ public static class CombatSessionData
                 MoneyReward = 0;
                 QuestEnemyId = "";
                 EnemyPrefabId = "";
+                IsDungeonBoss = false;
+                BossPersistenceKey = "";
+                BossDisplayName = "";
+                BossRewardMoney = 0;
+                BossRewardEntry = null;
                 BaseStats = new StatBlock();
                 PointBonus = new StatBlock();
                 return;
             }
 
             CharacterStats stats = entity.GetStatsComponent();
+            BossActor bossActor = entity.GetComponent<BossActor>();
 
             CombatantId = entity.GetInstanceID().ToString();
             CharacterId = CharacterIdentity.ResolveFromEntity(entity);
@@ -60,6 +71,11 @@ public static class CombatSessionData
             MoneyReward = entity.moneyReward;
             QuestEnemyId = entity.QuestEnemyId;
             EnemyPrefabId = entity.EnemyPrefabId;
+            IsDungeonBoss = bossActor != null;
+            BossPersistenceKey = bossActor != null ? bossActor.BossPersistenceKey : "";
+            BossDisplayName = bossActor != null ? bossActor.BossDisplayName : "";
+            BossRewardMoney = bossActor != null ? bossActor.BonusMoneyReward : 0;
+            BossRewardEntry = bossActor != null ? bossActor.CreateRewardEntrySnapshot() : null;
             BaseStats = stats != null && stats.BaseStats != null ? stats.BaseStats.Clone() : new StatBlock();
             PointBonus = stats != null && stats.PointBonus != null ? stats.PointBonus.Clone() : new StatBlock();
             EquippedWeapon = CreateEquipmentEntry(entity, EquipmentSlotType.Weapon);

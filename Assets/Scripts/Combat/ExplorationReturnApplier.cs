@@ -66,6 +66,7 @@ public class ExplorationReturnApplier : MonoBehaviour
 
         RestorePartyInventory(pending);
         ApplyRewardMoney(pending);
+        ApplyBossDefeats(pending);
         RemoveAllEnemiesInScene();
         RestorePreservedEnemies(pending);
         List<Entity> survivors = ApplyPlayerSurvivors(pending);
@@ -89,6 +90,15 @@ public class ExplorationReturnApplier : MonoBehaviour
     {
         if (pending != null && pending.RewardMoney > 0 && PartyCurrency.Instance != null)
             PartyCurrency.Instance.AddMoney(pending.RewardMoney);
+    }
+
+    private void ApplyBossDefeats(CombatExplorationReturnData.ExplorationReturnSnapshot pending)
+    {
+        if (pending == null || pending.DefeatedBossKeys == null)
+            return;
+
+        for (int i = 0; i < pending.DefeatedBossKeys.Count; i++)
+            DungeonBossPersistence.MarkBossDefeated(pending.DefeatedBossKeys[i]);
     }
 
     private void RemoveAllEnemiesInScene()

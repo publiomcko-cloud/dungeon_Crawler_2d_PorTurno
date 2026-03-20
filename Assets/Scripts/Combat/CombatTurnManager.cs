@@ -560,6 +560,18 @@ public class CombatTurnManager : MonoBehaviour
         int survivingEnemyCount = gridManager.GetEntitiesByTeam(Team.Enemy).Count;
         int defeatedEnemyCount = Mathf.Max(0, initialEnemyCount - survivingEnemyCount);
         int rewardMoney = defeatedEnemySnapshots.Sum(snapshot => snapshot.MoneyReward);
+        rewardMoney += defeatedEnemySnapshots
+            .Where(snapshot => snapshot != null && snapshot.IsDungeonBoss)
+            .Sum(snapshot => snapshot.BossRewardMoney);
+
+        List<string> defeatedBossKeys = defeatedEnemySnapshots
+            .Where(snapshot => snapshot != null && snapshot.IsDungeonBoss && !string.IsNullOrWhiteSpace(snapshot.BossPersistenceKey))
+            .Select(snapshot => snapshot.BossPersistenceKey)
+            .Distinct()
+            .ToList();
+
+        for (int i = 0; i < defeatedBossKeys.Count; i++)
+            DungeonBossPersistence.MarkBossDefeated(defeatedBossKeys[i]);
 
         List<CombatExplorationReturnData.EnemyReturnSnapshot> preservedEnemies = session.PreservedExplorationEnemies
             .Select(snapshot => new CombatExplorationReturnData.EnemyReturnSnapshot(
@@ -582,6 +594,7 @@ public class CombatTurnManager : MonoBehaviour
             .ToList();
 
         List<InventoryItemEntry> lootEntries = RollLootEntries(defeatedEnemySnapshots);
+        AddBossRewardEntries(defeatedEnemySnapshots, lootEntries);
         Vector2Int finalReturnCell = session.InitiatingTeam == Team.Player ? session.DefenderCell : session.AttackerCell;
         string leaderCharacterId = PartyAnchorService.Instance != null && PartyAnchorService.Instance.GetLeader() != null
             ? CharacterIdentity.ResolveFromEntity(PartyAnchorService.Instance.GetLeader())
@@ -595,6 +608,7 @@ public class CombatTurnManager : MonoBehaviour
                 leaderCharacterId,
                 defeatedEnemyCount,
                 rewardMoney,
+                defeatedBossKeys,
                 survivorSnapshots,
                 preservedEnemies,
                 lootEntries,
@@ -667,6 +681,23 @@ public class CombatTurnManager : MonoBehaviour
         }
 
         return result;
+    }
+
+    private void AddBossRewardEntries(
+        List<CombatSessionData.CombatParticipantSnapshot> defeatedEnemySnapshots,
+        List<InventoryItemEntry> lootEntries)
+    {
+        if (defeatedEnemySnapshots == null || lootEntries == null)
+            return;
+
+        for (int i = 0; i < defeatedEnemySnapshots.Count; i++)
+        {
+            CombatSessionData.CombatParticipantSnapshot snapshot = defeatedEnemySnapshots[i];
+            if (snapshot == null || !snapshot.IsDungeonBoss || snapshot.BossRewardEntry == null || snapshot.BossRewardEntry.IsEmpty)
+                continue;
+
+            lootEntries.Add(snapshot.BossRewardEntry.Clone());
+        }
     }
 
     private List<InventoryItemEntry> CloneInventoryEntries(IEnumerable<InventoryItemEntry> source)

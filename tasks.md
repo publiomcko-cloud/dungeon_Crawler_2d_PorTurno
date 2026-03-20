@@ -22,206 +22,128 @@ Legenda de status:
 - `[feito]` NPCs de recrutamento, quest e comercio
 - `[feito]` moeda da party
 - `[feito]` portais entre cenas
+- `[feito]` sistema de bau com UI de transferencia
+- `[feito]` boss de dungeon com recompensa e persistencia
 
 0.2 Sistemas faltando do escopo principal
-- `[pendente]` movimento por duplo clique
-- `[pendente]` sistema de bau principal / bau garantido
-- `[pendente]` boss de dungeon
 - `[pendente]` boss final
 - `[pendente]` estrutura fechada das 4 dungeons
 - `[pendente]` regras fechadas de recompensa por dungeon
 - `[pendente]` uso de item em combate
+- `[pendente]` sistema de animacao de personagem e arma
 
 ---
 
-# 1. Implementar sistema de bau
+# 1. Implementar sistema de animacao de personagem e arma
 
 1.1 Objetivo
-- criar um interativo de mapa que permita abrir bau e receber recompensa configurada
+- adicionar animacoes visuais legiveis para player e inimigos, separando corpo e arma equipada
 
 1.2 Dependencias
-- sistema de interacao no grid
-- inventario da party
-- geracao ou selecao de item
-- persistencia de estado do mapa
+- equipamentos funcionando
+- identificacao do item equipado
+- combate e exploracao ja integrados
+- estrutura visual do personagem com ponto de ancoragem para arma
 
 1.3 Tarefas principais
-1.3.1 criar script base de bau
-- detectar interacao ao tentar entrar na celula
-- bloquear reabertura infinita
-- expor configuracoes no Inspector
+1.3.1 definir arquitetura visual
+- separar corpo e arma em hierarquia clara
+- criar `WeaponAnchor` e, quando necessario, `WeaponPivot`
+- permitir trocar o visual da arma equipada sem trocar o personagem inteiro
 
-1.3.2 definir tipos de recompensa
-- item fixo
-- item gerado
-- dinheiro
-- lista de recompensas
+1.3.2 definir controlador de animacao
+- criar `CharacterAnimationController`
+- reagir a `idle`, `walk`, `attack`, `hurt` e `death`
+- manter o corpo desacoplado da animacao especifica da arma
 
-1.3.3 definir comportamento de abertura
-- abrir uma vez
-- trocar sprite/estado visual ao abrir
-- nao permitir loot duplicado
+1.3.3 definir animacao por tipo de arma
+- espada: semigiro com pivô fixo
+- arco: recuo curto para tras
+- cajado: leve elevacao
+- preparar extensao futura para novos tipos
 
-1.3.4 integrar com a UI existente
-- enviar item para a mochila compartilhada
-- se a mochila estiver cheia, manter feedback claro
-- opcionalmente usar a janela de loot atual
+1.3.4 definir perfis configuraveis
+- criar `WeaponAnimationProfile`
+- configurar offsets, rotacoes, duracao e curva
+- permitir override por item especifico
 
-1.3.5 persistencia
-- registrar bau aberto por cena
-- nao respawnar bau aberto ao voltar da batalha ou trocar de cena
+1.3.5 integrar com o equipamento atual
+- detectar arma equipada no `EquipmentSlots`
+- trocar visual e perfil da arma automaticamente
+- garantir fallback quando nao houver arma valida
+
+1.3.6 integrar com o fluxo de acao
+- tocar animacao ao atacar
+- tocar animacao ao mover
+- tocar animacao ao receber dano e morrer
+- manter compatibilidade com combate e exploracao
 
 1.4 Tarefas intermediarias recomendadas
-1.4.1 criar `ChestActor`
-1.4.2 criar `ChestPersistence`
-1.4.3 integrar com `PartyInventory`
-1.4.4 integrar com `ItemGenerator`
-1.4.5 adicionar feedback visual e sonoro
+1.4.1 criar `WeaponAnimationType`
+1.4.2 criar `WeaponAnimationProfile`
+1.4.3 criar `WeaponAnimationDriver`
+1.4.4 criar `CharacterAnimationController`
+1.4.5 ligar eventos de ataque com frame correto
 
 1.5 Criterio de conclusao
-- bau pode ser colocado como prefab
-- abre apenas uma vez
-- entrega recompensa corretamente
-- persiste entre retorno de combate e troca de cena
+- player e inimigos possuem `idle` e `walk`
+- espada gira corretamente
+- arco recua corretamente
+- cajado ergue corretamente
+- a animacao respeita a arma equipada
 
 ---
 
-# 2. Implementar boss de dungeon
+# 2. Implementar uso de item em combate
 
 2.1 Objetivo
-- criar encontro especial por mapa com identidade, dificuldade e recompensa propria
-
-2.2 Dependencias
-- combate atual funcionando
-- sistema de inimigos
-- transicao de cena e/ou progressao por portal
-- sistema de recompensa
-
-2.3 Tarefas principais
-2.3.1 definir estrutura de boss
-- prefab de boss
-- metadados de boss
-- recompensa ao derrotar
-
-2.3.2 integracao com mapa
-- posicionar boss em sala final
-- iniciar combate ao interagir
-- impedir bypass involuntario
-
-2.3.3 recompensa
-- dinheiro
-- item garantido
-- desbloqueio de saida da dungeon
-
-2.3.4 estado persistente
-- boss derrotado nao reaparece
-- mapa reflete estado pos-vitoria
-
-2.4 Tarefas intermediarias recomendadas
-2.4.1 criar `BossActor` ou usar `Entity` com flags de boss
-2.4.2 criar `BossRewardDefinition`
-2.4.3 criar estado de dungeon concluida
-2.4.4 adicionar feedback de encontro especial
-
-2.5 Criterio de conclusao
-- cada dungeon pode ter 1 boss configuravel
-- derrotar o boss conclui a dungeon ou libera sua saida
-- recompensa especial e persistente
-
----
-
-# 3. Implementar movimento por duplo clique
-
-3.1 Objetivo
-- permitir selecionar uma celula e mover automaticamente por varias celulas validas
-
-3.2 Dependencias
-- grid manager
-- validacao de celula caminhavel
-- controle de turno do player
-
-3.3 Tarefas principais
-3.3.1 detectar clique no grid
-- raycast ou conversao de tela para celula
-- diferenciar clique simples de duplo clique
-
-3.3.2 pathfinding simples
-- BFS ou A*
-- respeitar paredes
-- respeitar celulas bloqueadas
-
-3.3.3 execucao do movimento
-- mover passo a passo
-- interromper se houver combate
-- interromper em interacao de NPC, bau ou portal
-
-3.3.4 feedback visual
-- mostrar rota
-- destacar destino
-
-3.4 Tarefas intermediarias recomendadas
-3.4.1 criar helper de pathfinding
-3.4.2 criar visual de path
-3.4.3 integrar com `PlayerGridMovement`
-3.4.4 revisar convivio com input de teclado
-
-3.5 Criterio de conclusao
-- duplo clique move o player ate o destino valido
-- rota para ao encontrar combate ou interacao
-- teclado continua funcionando normalmente
-
----
-
-# 4. Implementar uso de item em combate
-
-4.1 Objetivo
 - permitir consumir item ou acionar item de suporte durante batalha
 
-4.2 Dependencias
+2.2 Dependencias
 - inventario compartilhado
 - UI de combate
 - sistema de turno
 
-4.3 Tarefas principais
-4.3.1 definir categoria de item usavel
+2.3 Tarefas principais
+2.3.1 definir categoria de item usavel
 - cura
 - buff
 - revival opcional
 
-4.3.2 criar fluxo de uso
+2.3.2 criar fluxo de uso
 - abrir lista de usaveis
 - escolher alvo
 - consumir item
 
-4.3.3 integrar com turno
+2.3.3 integrar com turno
 - custo de acao
 - validar se pode usar naquele turno
 
-4.4 Tarefas intermediarias recomendadas
-4.4.1 extender `ItemData`
-4.4.2 criar metodo de uso em combate
-4.4.3 integrar com UI de combate
+2.4 Tarefas intermediarias recomendadas
+2.4.1 extender `ItemData`
+2.4.2 criar metodo de uso em combate
+2.4.3 integrar com UI de combate
 
-4.5 Criterio de conclusao
+2.5 Criterio de conclusao
 - item de cura pode ser usado em combate
 - efeito aplica no alvo correto
 - item sai da mochila compartilhada
 
 ---
 
-# 5. Fechar sistema de dungeons
+# 3. Fechar sistema de dungeons
 
-5.1 Objetivo
+3.1 Objetivo
 - transformar o prototipo sistemico em progressao jogavel por capitulos
 
-5.2 Dependencias
+3.2 Dependencias
 - portais entre cenas
 - bau
 - boss
 - tabela de drops
 
-5.3 Tarefas principais
-5.3.1 definir Dungeon 1 como vertical slice completa
+3.3 Tarefas principais
+3.3.1 definir Dungeon 1 como vertical slice completa
 - inicio
 - salas
 - inimigos
@@ -229,182 +151,186 @@ Legenda de status:
 - 1 boss
 - saida
 
-5.3.2 definir progressao por mapa
+3.3.2 definir progressao por mapa
 - dungeon 1 facil
 - dungeon 2 media
 - dungeon 3 dificil
 - dungeon 4 final
 
-5.3.3 definir tiers predominantes por dungeon
+3.3.3 definir tiers predominantes por dungeon
 - comum
 - comum/raro
 - raro/epico
 - epico/lendario
 
-5.3.4 definir recompensas garantidas e drops
+3.3.4 definir recompensas garantidas e drops
 - bau por dungeon
 - drop pool por dungeon
 - recompensas de boss
 
-5.4 Tarefas intermediarias recomendadas
-5.4.1 criar documento de tabela de conteudo
-5.4.2 criar prefab set por dungeon
-5.4.3 validar pacing e dificuldade
+3.3.5 implementar boss final
+- encontro final separado ou ultima dungeon
+- recompensa e fechamento do jogo
+- persistencia e progressao final
 
-5.5 Criterio de conclusao
+3.4 Tarefas intermediarias recomendadas
+3.4.1 criar documento de tabela de conteudo
+3.4.2 criar prefab set por dungeon
+3.4.3 validar pacing e dificuldade
+
+3.5 Criterio de conclusao
 - existe ao menos 1 dungeon totalmente fechada e jogavel
 - a estrutura para replicar as demais 3 esta pronta
+- boss final tem fluxo claro de vitoria
 
 ---
 
-# 6. Polimento da exploracao e combate
+# 4. Polimento da exploracao e combate
 
-6.1 Objetivo
+4.1 Objetivo
 - melhorar leitura e satisfacao do loop principal
 
-6.2 Tarefas principais
-6.2.1 intencao inimiga
+4.2 Tarefas principais
+4.2.1 intencao inimiga
 - mostrar quem o inimigo vai atacar
 - indicar risco no proximo turno
 
-6.2.2 highlights no grid
+4.2.2 highlights no grid
 - movimento
 - alvo
 - interacao
 - perigo
 
-6.2.3 feedback audiovisual
+4.2.3 feedback audiovisual
 - dano
 - critico
 - morte
 - coleta
 - abertura de bau
 
-6.2.4 log de combate
+4.2.4 log de combate
 - dano causado
 - critico
 - morte
 - ganho de XP
 
-6.3 Criterio de conclusao
+4.3 Criterio de conclusao
 - combate fica mais legivel sem aumentar complexidade
 
 ---
 
-# 7. Refinar itens e builds
+# 5. Refinar itens e builds
 
-7.1 Objetivo
+5.1 Objetivo
 - reforcar o foco do jogo em build por item
 
-7.2 Tarefas principais
-7.2.1 criar afixos simples
+5.2 Tarefas principais
+5.2.1 criar afixos simples
 - bonus de stat
 - efeito curto
 - sinergia facil de entender
 
-7.2.2 ampliar diversidade util
+5.2.2 ampliar diversidade util
 - armas
 - armaduras
 - acessorios
 
-7.2.3 revisar tiers
+5.2.3 revisar tiers
 - comum
 - raro
 - epico
 - lendario
 
-7.2.4 criar sinergias curtas
+5.2.4 criar sinergias curtas
 - exemplo: veneno + acerto extra
 - exemplo: AP + critico
 
-7.3 Criterio de conclusao
+5.3 Criterio de conclusao
 - itens mudam decisao do jogador, nao apenas numero
 
 ---
 
-# 8. Refinar NPCs e economia
+# 6. Refinar NPCs e economia
 
-8.1 Objetivo
+6.1 Objetivo
 - consolidar NPCs como loop secundario importante
 
-8.2 Tarefas principais
-8.2.1 polir UI dos NPCs
+6.2 Tarefas principais
+6.2.1 polir UI dos NPCs
 - consistencia visual
 - revisar estados de compra/venda/quest/recruit
 
-8.2.2 ampliar quests
+6.2.2 ampliar quests
 - mais objetivos de exterminio
 - recompensas melhores por progressao
 
-8.2.3 ampliar comercio
+6.2.3 ampliar comercio
 - estoque por dungeon
 - itens melhores em mapas avancados
 
-8.2.4 revisar recrutamento
+6.2.4 revisar recrutamento
 - custo por progressao
 - NPCs recrutaveis especiais
 
-8.3 Criterio de conclusao
+6.3 Criterio de conclusao
 - NPCs passam a enriquecer progressao e build, nao apenas servir de teste de sistema
 
 ---
 
-# 9. Qualidade de vida
+# 7. Qualidade de vida
 
-9.1 Tarefas principais
-9.1.1 salvar e carregar
-9.1.2 filtros e ordenacao no inventario
-9.1.3 remapeamento de teclas
-9.1.4 tutorial contextual curto
-9.1.5 codex de inimigos e itens
+7.1 Tarefas principais
+7.1.1 salvar e carregar
+7.1.2 filtros e ordenacao no inventario
+7.1.3 remapeamento de teclas
+7.1.4 tutorial contextual curto
+7.1.5 codex de inimigos e itens
 
-9.2 Criterio de conclusao
+7.2 Criterio de conclusao
 - jogar, testar e iterar fica mais rapido e confiavel
 
 ---
 
-# 10. Ordem sugerida de execucao
+# 8. Ordem sugerida de execucao
 
-10.1 Fase 1
-- implementar bau
-- implementar boss de dungeon
+8.1 Fase 1
+- implementar sistema de animacao de personagem e arma
 - fechar dungeon 1
 
-10.2 Fase 2
-- implementar movimento por duplo clique
+8.2 Fase 2
+- implementar uso de item em combate
 - implementar highlights no grid
 - implementar intencao inimiga
 
-10.3 Fase 3
-- implementar uso de item em combate
+8.3 Fase 3
 - refinar itens e sinergias
 - refinar loot por dungeon
+- avancar dungeons 2 e 3
 
-10.4 Fase 4
+8.4 Fase 4
 - polir NPCs, economia e quests
 - adicionar eventos de sala
 - revisar progressao geral
 
-10.5 Fase 5
+8.5 Fase 5
 - salvar/carregar
 - codex
 - qol final
-- expansao para dungeons 2, 3 e 4
+- dungeon 4 e boss final
 
 ---
 
-# 11. Proxima entrega recomendada
+# 9. Proxima entrega recomendada
 
-11.1 Proxima implementacao ideal
-- sistema de bau
+9.1 Proxima implementacao ideal
+- sistema de animacao de personagem e arma
 
-11.2 Motivo
-- fecha parte central do escopo
-- conversa diretamente com inventario, loot, dungeon e recompensa
-- prepara terreno para boss e progressao de mapa
+9.2 Motivo
+- melhora muito a leitura de combate e exploracao
+- conversa diretamente com o sistema de equipamentos
+- prepara bem o jogo para polimento audiovisual
 
-11.3 Considerar concluido quando
-- houver um prefab de bau configuravel
-- o bau abrir uma vez
-- entregar item ou dinheiro
-- persistir corretamente no mapa
+9.3 Considerar concluido quando
+- houver animacao base de corpo
+- houver animacao distinta para espada, arco e cajado
+- a arma equipada alterar corretamente a apresentacao visual

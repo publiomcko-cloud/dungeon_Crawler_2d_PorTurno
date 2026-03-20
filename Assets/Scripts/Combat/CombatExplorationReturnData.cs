@@ -150,6 +150,7 @@ public static class CombatExplorationReturnData
         public string LeaderCharacterId { get; private set; }
         public int DefeatedEnemyCount { get; private set; }
         public int RewardMoney { get; private set; }
+        public List<string> DefeatedBossKeys { get; private set; }
         public List<PlayerReturnSnapshot> PlayerSurvivors { get; private set; }
         public List<EnemyReturnSnapshot> PreservedEnemies { get; private set; }
         public List<InventoryItemEntry> LootEntries { get; private set; }
@@ -162,6 +163,7 @@ public static class CombatExplorationReturnData
             string leaderCharacterId,
             int defeatedEnemyCount,
             int rewardMoney,
+            List<string> defeatedBossKeys,
             List<PlayerReturnSnapshot> playerSurvivors,
             List<EnemyReturnSnapshot> preservedEnemies,
             List<InventoryItemEntry> lootEntries,
@@ -173,6 +175,7 @@ public static class CombatExplorationReturnData
             LeaderCharacterId = leaderCharacterId;
             DefeatedEnemyCount = Mathf.Max(0, defeatedEnemyCount);
             RewardMoney = Mathf.Max(0, rewardMoney);
+            DefeatedBossKeys = defeatedBossKeys ?? new List<string>();
             PlayerSurvivors = playerSurvivors ?? new List<PlayerReturnSnapshot>();
             PreservedEnemies = preservedEnemies ?? new List<EnemyReturnSnapshot>();
             LootEntries = lootEntries ?? new List<InventoryItemEntry>();

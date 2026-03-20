@@ -74,6 +74,9 @@ public class PlayerPartyController : MonoBehaviour
         if (NpcActor.TryInteractAtCell(targetCell, interactor))
             return;
 
+        if (ChestActor.TryInteractAtCell(targetCell, interactor))
+            return;
+
         bool actionDone = GridManager.Instance.TryMoveGroupOrAttack(party, targetCell);
         bool isTransitioningToCombat = CombatTransitionManager.Instance != null &&
             CombatTransitionManager.Instance.IsTransitionInProgress;

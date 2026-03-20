@@ -17,6 +17,12 @@ public class ScenePortal : MonoBehaviour
     [Header("Flow")]
     [SerializeField] private bool allowTravel = true;
 
+    [Header("Boss Gate")]
+    [SerializeField] private bool requireBossDefeat = false;
+    [SerializeField] private string requiredBossId = "";
+    [SerializeField] private string requiredBossSceneName = "";
+    [SerializeField] private string lockedMessage = "Derrote o boss da dungeon para liberar esta saida.";
+
     public string PortalId => portalId;
     public string TargetSceneName => targetSceneName;
     public string TargetPortalId => targetPortalId;
@@ -42,6 +48,14 @@ public class ScenePortal : MonoBehaviour
     {
         if (!allowTravel)
             return false;
+
+        if (!IsBossRequirementMet())
+        {
+            if (!string.IsNullOrWhiteSpace(lockedMessage))
+                ExplorationMessageUI.GetOrCreateInstance().ShowMessage(lockedMessage);
+
+            return false;
+        }
 
         if (string.IsNullOrWhiteSpace(targetSceneName))
         {
@@ -81,6 +95,23 @@ public class ScenePortal : MonoBehaviour
         return false;
     }
 
+    public bool IsBossRequirementMet()
+    {
+        if (!requireBossDefeat)
+            return true;
+
+        string bossId = string.IsNullOrWhiteSpace(requiredBossId) ? "" : requiredBossId.Trim();
+        if (string.IsNullOrWhiteSpace(bossId))
+            return true;
+
+        string sceneName = string.IsNullOrWhiteSpace(requiredBossSceneName)
+            ? SceneManager.GetActiveScene().name
+            : requiredBossSceneName.Trim();
+
+        string bossKey = $"{sceneName}::{bossId}";
+        return DungeonBossPersistence.IsBossDefeated(bossKey);
+    }
+
     private void ValidateInspectorConfiguration()
     {
         if (!enableInspectorWarnings)
@@ -94,5 +125,8 @@ public class ScenePortal : MonoBehaviour
 
         if (string.IsNullOrWhiteSpace(targetPortalId))
             Debug.LogWarning($"ScenePortal '{name}': 'Target Portal Id' esta vazio.", this);
+
+        if (requireBossDefeat && string.IsNullOrWhiteSpace(requiredBossId))
+            Debug.LogWarning($"ScenePortal '{name}': 'Required Boss Id' esta vazio.", this);
     }
 }
