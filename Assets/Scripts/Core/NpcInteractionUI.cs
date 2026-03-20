@@ -80,6 +80,8 @@ public class NpcInteractionUI : MonoBehaviour
     [SerializeField] private RectTransform playerPanelRoot;
     [SerializeField] private Transform merchantGridRoot;
     [SerializeField] private Transform playerGridRoot;
+    [SerializeField] private ScrollRect playerInventoryScrollRect;
+    [SerializeField] private Scrollbar playerInventoryScrollbar;
     [SerializeField] private TMP_Text questInfoText;
     [SerializeField] private RectTransform actionBarRoot;
     [SerializeField] private Button confirmButton;
@@ -134,6 +136,7 @@ public class NpcInteractionUI : MonoBehaviour
     [Header("Recommended Slot Layout")]
     [SerializeField] private NpcGridStyleSettings merchantGridStyle = new NpcGridStyleSettings();
     [SerializeField] private NpcGridStyleSettings playerGridStyle = new NpcGridStyleSettings();
+    [SerializeField] private float playerScrollbarWidth = 14f;
 
     [Header("Input")]
     [SerializeField] private KeyCode closeKey = KeyCode.Escape;
@@ -313,6 +316,8 @@ public class NpcInteractionUI : MonoBehaviour
         SetQuestNavigationInteractable(false, false);
         BuildMerchantStockGrid();
         BuildPlayerInventoryGrid();
+        if (playerInventoryScrollRect != null)
+            playerInventoryScrollRect.verticalNormalizedPosition = 1f;
         BringActionButtonsToFront();
     }
 
@@ -789,7 +794,8 @@ public class NpcInteractionUI : MonoBehaviour
         playerPanelRoot = CreatePanel("PlayerPanel", root.transform, playerPanelStyle);
 
         merchantGridRoot = CreateGridRoot("MerchantGridRoot", merchantPanelRoot, merchantGridStyle);
-        playerGridRoot = CreateGridRoot("PlayerGridRoot", playerPanelRoot, playerGridStyle);
+        playerInventoryScrollRect = CreateScrollRect("PlayerInventoryScrollRect", playerPanelRoot, out RectTransform playerViewport, out playerInventoryScrollbar);
+        playerGridRoot = CreateScrollableGridRoot("PlayerGridRoot", playerViewport, playerGridStyle, playerInventoryScrollRect);
 
         questInfoText = CreateText("QuestInfoText", root.transform, questInfoStyle);
         statusText = CreateText("StatusText", root.transform, statusStyle);
@@ -864,6 +870,126 @@ public class NpcInteractionUI : MonoBehaviour
         grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
         grid.startAxis = GridLayoutGroup.Axis.Horizontal;
         grid.childAlignment = TextAnchor.UpperLeft;
+
+        return rect;
+    }
+
+    private ScrollRect CreateScrollRect(string objectName, RectTransform parent, out RectTransform viewportRect, out Scrollbar scrollbar)
+    {
+        GameObject root = new GameObject(objectName, typeof(RectTransform), typeof(Image), typeof(ScrollRect));
+        root.transform.SetParent(parent, false);
+
+        RectTransform rootRect = root.GetComponent<RectTransform>();
+        rootRect.anchorMin = Vector2.zero;
+        rootRect.anchorMax = Vector2.one;
+        rootRect.offsetMin = Vector2.zero;
+        rootRect.offsetMax = Vector2.zero;
+
+        Image background = root.GetComponent<Image>();
+        background.color = new Color(0f, 0f, 0f, 0f);
+        background.raycastTarget = true;
+
+        GameObject viewport = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(Mask));
+        viewport.transform.SetParent(root.transform, false);
+
+        viewportRect = viewport.GetComponent<RectTransform>();
+        viewportRect.anchorMin = Vector2.zero;
+        viewportRect.anchorMax = Vector2.one;
+        viewportRect.offsetMin = new Vector2(0f, 0f);
+        viewportRect.offsetMax = new Vector2(-playerScrollbarWidth - 4f, 0f);
+
+        Image viewportImage = viewport.GetComponent<Image>();
+        viewportImage.color = new Color(1f, 1f, 1f, 0.01f);
+        viewportImage.raycastTarget = true;
+
+        Mask viewportMask = viewport.GetComponent<Mask>();
+        viewportMask.showMaskGraphic = false;
+
+        GameObject scrollbarObject = new GameObject("Scrollbar", typeof(RectTransform), typeof(Image), typeof(Scrollbar));
+        scrollbarObject.transform.SetParent(root.transform, false);
+
+        RectTransform scrollbarRect = scrollbarObject.GetComponent<RectTransform>();
+        scrollbarRect.anchorMin = new Vector2(1f, 0f);
+        scrollbarRect.anchorMax = new Vector2(1f, 1f);
+        scrollbarRect.pivot = new Vector2(1f, 1f);
+        scrollbarRect.sizeDelta = new Vector2(playerScrollbarWidth, 0f);
+        scrollbarRect.anchoredPosition = Vector2.zero;
+
+        Image scrollbarImage = scrollbarObject.GetComponent<Image>();
+        ApplyImageStyle(scrollbarImage, new Color(0.18f, 0.18f, 0.18f, 1f));
+
+        scrollbar = scrollbarObject.GetComponent<Scrollbar>();
+        scrollbar.direction = Scrollbar.Direction.BottomToTop;
+
+        GameObject handleArea = new GameObject("Sliding Area", typeof(RectTransform));
+        handleArea.transform.SetParent(scrollbarObject.transform, false);
+
+        RectTransform handleAreaRect = handleArea.GetComponent<RectTransform>();
+        handleAreaRect.anchorMin = Vector2.zero;
+        handleAreaRect.anchorMax = Vector2.one;
+        handleAreaRect.offsetMin = new Vector2(2f, 2f);
+        handleAreaRect.offsetMax = new Vector2(-2f, -2f);
+
+        GameObject handle = new GameObject("Handle", typeof(RectTransform), typeof(Image));
+        handle.transform.SetParent(handleArea.transform, false);
+
+        RectTransform handleRect = handle.GetComponent<RectTransform>();
+        handleRect.anchorMin = Vector2.zero;
+        handleRect.anchorMax = Vector2.one;
+        handleRect.offsetMin = Vector2.zero;
+        handleRect.offsetMax = Vector2.zero;
+
+        Image handleImage = handle.GetComponent<Image>();
+        ApplyImageStyle(handleImage, new Color(0.45f, 0.45f, 0.45f, 1f));
+
+        scrollbar.handleRect = handleRect;
+        scrollbar.targetGraphic = handleImage;
+        scrollbar.value = 1f;
+        scrollbar.size = 0.2f;
+
+        ScrollRect scrollRect = root.GetComponent<ScrollRect>();
+        scrollRect.viewport = viewportRect;
+        scrollRect.vertical = true;
+        scrollRect.horizontal = false;
+        scrollRect.movementType = ScrollRect.MovementType.Clamped;
+        scrollRect.scrollSensitivity = 25f;
+        scrollRect.verticalScrollbar = scrollbar;
+        scrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHideAndExpandViewport;
+        scrollRect.horizontalScrollbar = null;
+        scrollRect.horizontalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+
+        return scrollRect;
+    }
+
+    private Transform CreateScrollableGridRoot(string objectName, RectTransform viewport, NpcGridStyleSettings style, ScrollRect scrollRect)
+    {
+        GameObject go = new GameObject(objectName, typeof(RectTransform), typeof(GridLayoutGroup), typeof(ContentSizeFitter));
+        go.transform.SetParent(viewport, false);
+
+        RectTransform rect = go.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0f, 1f);
+        rect.anchoredPosition = new Vector2(style.contentLeft, -style.contentTop);
+        rect.sizeDelta = new Vector2(
+            Mathf.Max(1f, viewport.rect.width - style.contentLeft - style.contentRight),
+            0f);
+
+        GridLayoutGroup grid = go.GetComponent<GridLayoutGroup>();
+        grid.cellSize = new Vector2(style.cellWidth, style.cellHeight);
+        grid.spacing = new Vector2(style.horizontalSpacing, style.verticalSpacing);
+        grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        grid.constraintCount = Mathf.Max(1, style.columns);
+        grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
+        grid.startAxis = GridLayoutGroup.Axis.Horizontal;
+        grid.childAlignment = TextAnchor.UpperLeft;
+
+        ContentSizeFitter fitter = go.GetComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        if (scrollRect != null)
+            scrollRect.content = rect;
 
         return rect;
     }
